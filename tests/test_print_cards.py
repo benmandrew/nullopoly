@@ -1,5 +1,6 @@
 import unittest
 import card
+import util
 
 
 class TestPrintCardsSideBySide(unittest.TestCase):
@@ -12,7 +13,7 @@ class TestPrintCardsSideBySide(unittest.TestCase):
         output = card.fmt_cards_side_by_side(cards)
         # The expected output will contain ANSI codes and box drawing characters.
         # For a robust test, strip ANSI codes and compare the visible layout.
-        visible_output = card.strip_ansi(output)
+        visible_output = util.strip_ansi(output)
         expected = (
             "┌───────────┐┌──────────────┐┌───────┐\n"
             "│ Park Lane ││ Deal Breaker ││ Money │\n"

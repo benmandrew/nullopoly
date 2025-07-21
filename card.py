@@ -1,6 +1,6 @@
 from enum import Enum
 from abc import ABC, abstractmethod
-import re
+import util
 
 
 class Card(ABC):
@@ -155,7 +155,7 @@ class ActionCard(Card):
         if self._action.name.startswith("RENT_"):
             action_str = self.colour_rent_names(action_str)
         lines = [action_str, f"£{self._value}"]
-        width = max(len(strip_ansi(line)) for line in lines) + 4
+        width = max(len(util.strip_ansi(line)) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
         content = "\n".join(f"│ {line:<{width-4}} │" for line in lines)
@@ -221,19 +221,16 @@ def colour_card_str(card: Card) -> str:
     return str(card)
 
 
-def strip_ansi(s: str) -> str:
-    return re.sub(r"\033\[[0-9;]*m", "", s)
-
-
 def fmt_cards_side_by_side(cards: list[Card]) -> str:
     card_lines = [colour_card_str(card).split("\n") for card in cards]
     max_height = max(len(lines) for lines in card_lines)
     for i, lines in enumerate(card_lines):
         # Calculate visible width, ignoring ANSI codes
-        card_width = max(len(strip_ansi(line)) for line in lines)
+        card_width = max(len(util.strip_ansi(line)) for line in lines)
         # Pad each line to visible card width
         card_lines[i] = [
-            line + " " * (card_width - len(strip_ansi(line))) for line in lines
+            line + " " * (card_width - len(util.strip_ansi(line)))
+            for line in lines
         ]
         while len(card_lines[i]) < max_height:
             card_lines[i].append(" " * card_width)
