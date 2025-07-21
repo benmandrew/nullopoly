@@ -15,7 +15,7 @@ fmt-ci:
 lint: ruff pylint mypy
 
 ruff:
-	ruff check .
+	python3 -m ruff check .
 
 pylint:
 	find . -name ".venv" -prune -o -name "*.py" -print | xargs python3 -m pylint --disable=missing-docstring --score=n --reports=n --output-format=colorized
