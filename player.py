@@ -79,6 +79,26 @@ class PlayerState:
             for card_obj in property_set.cards
         ]
 
+    def play_card_from_hand(self, i: int) -> None:
+        assert 0 <= i < len(self.hand), "Index out of range for hand"
+        card_obj = self.hand.pop(i)
+        if isinstance(card_obj, card.PropertyCard):
+            self.add_property(card_obj)
+        elif isinstance(card_obj, card.MoneyCard):
+            self.add_to_bank(card_obj)
+        elif isinstance(card_obj, card.ActionCard):
+            choice = input(
+                "Choose an option:\n1. Play action\n2. Add to bank\n"
+            )
+            if choice == "1":
+                raise NotImplementedError("Action card play not implemented")
+            if choice == "2":
+                self.add_to_bank(card_obj)
+            else:
+                raise ValueError("Invalid choice for action card")
+        else:
+            raise ValueError(f"Unknown card type: {type(card_obj)}")
+
     def add_payment(self, cards: list[card.Card]) -> None:
         for card_obj in cards:
             if isinstance(card_obj, card.PropertyCard):
@@ -113,7 +133,7 @@ class PlayerState:
         )
         return charged_cards, charged_properties
 
-    def state_string(self) -> str:
+    def fmt_state(self) -> str:
         lines = [f"Player: {self.name}", "Properties:"]
         for colour, prop_set in self.properties.items():
             if not prop_set.cards:
@@ -122,13 +142,9 @@ class PlayerState:
                 card_obj.name() for card_obj in prop_set.cards
             )
             lines.append(f"  {colour.name.title():<15}: {cards_str}")
-        lines.append("Bank:")
-        bank_str = ", ".join(
-            f"{card_obj.name()} (£{card_obj.value()})" for card_obj in self.bank
-        )
-        lines.append(f"  {bank_str}")
+        bank_str = ", ".join(f"£{card_obj.value()}" for card_obj in self.bank)
+        lines.append(f"Bank (£{self.total_bank_value()}): {bank_str}")
         lines.append("Hand:")
-        for card_obj in self.hand:
-            lines.append(f"  {card_obj.name()} (£{card_obj.value()})")
+        lines.append(card.fmt_cards_side_by_side(self.hand))
         lines.append("-" * 40)
         return "\n".join(lines)

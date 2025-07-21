@@ -36,9 +36,8 @@ class GameState:
 
     def deal_to_player(self, player: PlayerState, count: int) -> None:
         assert count > 0, "Count must be positive"
-        while len(player.hand) < count and self.deck:
-            card = self.draw_card()
-            player.add_to_hand(card)
+        for _ in range(count):
+            player.add_to_hand(self.draw_card())
 
     def next_player(self) -> PlayerState:
         self.current_player_index = (self.current_player_index + 1) % len(

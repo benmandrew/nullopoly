@@ -9,7 +9,7 @@ class TestPrintCardsSideBySide(unittest.TestCase):
             card.ActionCard("Deal Breaker", 5, card.ActionType.DEAL_BREAKER),
             card.MoneyCard(5),
         ]
-        output = card.print_cards_side_by_side(cards)
+        output = card.fmt_cards_side_by_side(cards)
         # The expected output will contain ANSI codes and box drawing characters.
         # For a robust test, strip ANSI codes and compare the visible layout.
         visible_output = card.strip_ansi(output)

@@ -225,7 +225,7 @@ def strip_ansi(s: str) -> str:
     return re.sub(r"\033\[[0-9;]*m", "", s)
 
 
-def print_cards_side_by_side(cards: list[Card]) -> str:
+def fmt_cards_side_by_side(cards: list[Card]) -> str:
     card_lines = [colour_card_str(card).split("\n") for card in cards]
     max_height = max(len(lines) for lines in card_lines)
     for i, lines in enumerate(card_lines):
