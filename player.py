@@ -1,4 +1,6 @@
 import card
+import window
+import util
 
 
 class PropertySet:
@@ -79,7 +81,10 @@ class PlayerState:
             for card_obj in property_set.cards
         ]
 
-    def play_card_from_hand(self, i: int) -> None:
+    def _action_input_validation(self, key: str) -> bool:
+        return key.isdigit() and 1 <= int(key) <= 2
+
+    def play_card_from_hand(self, i: int, win: window.Window) -> None:
         assert 0 <= i < len(self.hand), "Index out of range for hand"
         card_obj = self.hand.pop(i)
         if isinstance(card_obj, card.PropertyCard):
@@ -87,12 +92,13 @@ class PlayerState:
         elif isinstance(card_obj, card.MoneyCard):
             self.add_to_bank(card_obj)
         elif isinstance(card_obj, card.ActionCard):
-            choice = input(
-                "Choose an option:\n1. Play action\n2. Add to bank\n"
+            win.print_action_dialog()
+            choice = util.get_number_input(
+                win.stdscr, self._action_input_validation
             )
-            if choice == "1":
+            if choice == 1:
                 raise NotImplementedError("Action card play not implemented")
-            if choice == "2":
+            if choice == 2:
                 self.add_to_bank(card_obj)
             else:
                 raise ValueError("Invalid choice for action card")
@@ -133,7 +139,7 @@ class PlayerState:
         )
         return charged_cards, charged_properties
 
-    def fmt_state(self) -> str:
+    def fmt_visible_state(self) -> list[str]:
         lines = [f"Player: {self.name}", "Properties:"]
         for colour, prop_set in self.properties.items():
             if not prop_set.cards:
@@ -144,7 +150,9 @@ class PlayerState:
             lines.append(f"  {colour.name.title():<15}: {cards_str}")
         bank_str = ", ".join(f"£{card_obj.value()}" for card_obj in self.bank)
         lines.append(f"Bank (£{self.total_bank_value()}): {bank_str}")
-        lines.append("Hand:")
-        lines.append(card.fmt_cards_side_by_side(self.hand))
-        lines.append("-" * 40)
-        return "\n".join(lines)
+        return lines
+
+    def fmt_hand(self) -> list[str]:
+        lines = ["Hand:"]
+        lines.extend(card.fmt_cards_side_by_side(self.hand))
+        return lines

@@ -1,57 +1,52 @@
 import curses
 from game import GameState
 import util
+from player import PlayerState
+import window
 
 
-def get_card_choice(stdscr, player) -> int:
-    stdscr.addstr(f"Choose a card to play (1-{len(player.hand)}): ")
-    while True:
-        key = stdscr.getkey()
-        if key.isdigit():
-            choice = int(key)
-            if 1 <= choice <= len(player.hand):
-                return choice
-        stdscr.addstr("Invalid input. Try again.  ")
-        stdscr.refresh()
+def get_card_choice(stdscr: curses.window, player: PlayerState) -> int:
+    def validation(key: str) -> bool:
+        return key.isdigit() and 1 <= int(key) <= len(player.hand)
+
+    return util.get_number_input(stdscr, validation)
+
+
+def print_game_state(stdscr: curses.window, game: GameState) -> int:
+    new_y = 0
+    _, scr_width = stdscr.getmaxyx()
+    for i, player in enumerate(game.players):
+        x_offset = scr_width * i // len(game.players)
+        state_lines = [util.strip_ansi(s) for s in player.fmt_visible_state()]
+        for idx, line in enumerate(state_lines):
+            stdscr.addstr(idx, x_offset, line)
+        new_y = max(new_y, len(state_lines))
+    return new_y
 
 
 def curses_main(stdscr: curses.window) -> None:
     curses.curs_set(0)  # Hide the cursor
-    stdscr.clear()
-    game = GameState(["Alice"], "deck.json")
+    win = window.Window(stdscr)
+    game = GameState(["Alice", "Bob"], "deck.json")
     game.start()
     while True:
         current_player = game.current_player()
         game.deal_to_player(current_player, 2)
         for i in range(3):
-            stdscr.clear()
-            state_lines = util.strip_ansi(current_player.fmt_state()).split(
-                "\n"
+            win.print_game_state(
+                [player.fmt_visible_state() for player in game.players]
             )
-            for idx, line in enumerate(state_lines):
-                stdscr.addstr(idx, 0, line)
-            stdscr.addstr(
-                len(state_lines) + 1,
-                0,
-                f"{3 - i} cards left to play this turn.",
+            win.print_hand(
+                current_player.name,
+                current_player.fmt_hand(),
+                len(current_player.hand),
+                i,
             )
-            stdscr.addstr(
-                len(state_lines) + 2,
-                0,
-                f"Choose a card to play (1-{len(current_player.hand)}): ",
-            )
-            stdscr.refresh()
             choice = get_card_choice(stdscr, current_player)
-            current_player.play_card_from_hand(choice - 1)
+            current_player.play_card_from_hand(choice - 1, win)
             if len(current_player.hand) == 0:
                 game.deal_from_empty(current_player)
         game.end_turn()
-        stdscr.addstr(
-            len(state_lines) + 3 + len(current_player.hand) + 5,
-            0,
-            "Press any key for next turn...",
-        )
-        stdscr.getkey()
 
 
 if __name__ == "__main__":

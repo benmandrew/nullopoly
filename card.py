@@ -154,7 +154,7 @@ class ActionCard(Card):
         action_str = self._action.name.replace("_", " ").title()
         if self._action.name.startswith("RENT_"):
             action_str = self.colour_rent_names(action_str)
-        lines = [action_str, f"£{self._value}"]
+        lines = [action_str, "", f"£{self._value}"]
         width = max(len(util.strip_ansi(line)) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
@@ -176,7 +176,7 @@ class MoneyCard(Card):
         return "money"
 
     def __str__(self) -> str:
-        lines = ["Money", f"£{self._value}"]
+        lines = ["Money", "", f"£{self._value}"]
         width = max(len(line) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
@@ -221,8 +221,10 @@ def colour_card_str(card: Card) -> str:
     return str(card)
 
 
-def fmt_cards_side_by_side(cards: list[Card]) -> str:
+def fmt_cards_side_by_side(cards: list[Card]) -> list[str]:
     card_lines = [colour_card_str(card).split("\n") for card in cards]
+    for i, c in enumerate(card_lines):
+        c.insert(0, f"{i+1}.")
     max_height = max(len(lines) for lines in card_lines)
     for i, lines in enumerate(card_lines):
         # Calculate visible width, ignoring ANSI codes
@@ -234,11 +236,11 @@ def fmt_cards_side_by_side(cards: list[Card]) -> str:
         ]
         while len(card_lines[i]) < max_height:
             card_lines[i].append(" " * card_width)
-    output_lines = [
+    lines = [
         "".join(card_lines[i][line_idx] for i in range(len(cards)))
         for line_idx in range(max_height)
     ]
-    return "\n".join(output_lines)
+    return lines
 
 
 def colour_property_name(name: str) -> str:
