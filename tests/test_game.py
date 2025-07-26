@@ -91,15 +91,19 @@ class TestActionCards(unittest.TestCase):
         self.p2 = self.g.get_player("P2")
         self.p3 = self.g.get_player("P3")
 
-    # def test_debt_collector(self):
-    #     action_card = cards.ActionCard(
-    #         "Debt Collector", 3, cards.ActionType.DEBT_COLLECTOR
-    #     )
-    #     with patch.object(
-    #         self.g, "choose_player_target", return_value=self.p2
-    #     ), patch("util.get_number_input", return_value=1):
-    #         self.g.play_action_card(action_card, self.p1)
-    #     self.assertEqual(self.p2.total_bank_value(), 5)
+    def test_debt_collector(self):
+        action_card = cards.ActionCard(
+            "Debt Collector", 3, cards.ActionType.DEBT_COLLECTOR
+        )
+        self.p2.add_to_bank(cards.MoneyCard(3))
+        self.p2.add_to_bank(cards.MoneyCard(3))
+        self.p2.add_to_bank(cards.MoneyCard(1))
+        with patch.object(
+            self.g, "choose_player_target", return_value=self.p2
+        ), patch("util.get_number_input", return_value=1):
+            self.g.play_action_card(action_card, self.p1)
+        self.assertEqual(self.p1.total_bank_value(), 6)
+        self.assertEqual(self.p2.total_bank_value(), 1)
 
     def test_birthday(self):
         action_card = cards.ActionCard(
