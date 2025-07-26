@@ -1,7 +1,6 @@
 import unittest
 
 import cards
-import util
 
 
 class TestPrintCardsSideBySide(unittest.TestCase):
@@ -12,7 +11,6 @@ class TestPrintCardsSideBySide(unittest.TestCase):
             cards.MoneyCard(5),
         ]
         output = "\n".join(cards.fmt_cards_side_by_side(deck))
-        visible_output = util.strip_ansi(output)
         expected = (
             "1.           2.              3.       \n"
             "┌───────────┐┌──────────────┐┌───────┐\n"
@@ -21,7 +19,7 @@ class TestPrintCardsSideBySide(unittest.TestCase):
             "│ £4        ││ £5           ││ £5    │\n"
             "└───────────┘└──────────────┘└───────┘"
         )
-        self.assertMultiLineEqual(visible_output.strip(), expected.strip())
+        self.assertMultiLineEqual(output.strip(), expected.strip())
 
 
 if __name__ == "__main__":

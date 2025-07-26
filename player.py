@@ -83,7 +83,17 @@ class Player:
             for card in property_set.cards
         ]
 
+    def get_card_in_hand(self, i: int) -> cards.Card:
+        """
+        Get a card from the player's hand by index.
+        """
+        assert 0 <= i < len(self.hand), "Index out of range for hand"
+        return self.hand[i]
+
     def remove_card_from_hand(self, i: int) -> cards.Card:
+        """
+        Remove a card from the player's hand by index.
+        """
         assert 0 <= i < len(self.hand), "Index out of range for hand"
         return self.hand.pop(i)
 
@@ -136,7 +146,9 @@ class Player:
         for colour, prop_set in self.properties.items():
             if not prop_set.cards:
                 continue
-            cards_str = ", ".join(card.name() for card in prop_set.cards)
+            cards_str = ", ".join(
+                f"{card.name()} (£{card.value()})" for card in prop_set.cards
+            )
             lines.append(f"  {colour.name.title():<15}: {cards_str}")
         bank_str = ", ".join(f"£{card.value()}" for card in self.bank)
         lines.append(f"Bank (£{self.total_bank_value()}): {bank_str}")

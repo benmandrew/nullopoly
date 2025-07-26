@@ -1,10 +1,11 @@
 import curses
-import re
 from collections.abc import Callable
 
 
-def strip_ansi(s: str) -> str:
-    return re.sub(r"\033\[[0-9;]*m", "", s)
+class InvalidChoiceError(Exception):
+    """
+    Raised when the option taken is invalid.
+    """
 
 
 def get_number_input(

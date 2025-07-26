@@ -58,6 +58,7 @@ class Game:
 
     def end_turn(self) -> None:
         self.current_turn += 1
+        self.win.log_window.clear()
         self.next_player()
 
     def get_player(self, name: str) -> player.Player | None:
@@ -90,7 +91,10 @@ class Game:
         owned_colours = [
             c for c in colour_options if p.properties[c].count() > 0
         ]
-        assert owned_colours, "No owned colours for rent card"
+        if not owned_colours:
+            error = "You do not own any properties of the required colours."
+            self.win.print_invalid_choice(error)
+            raise util.InvalidChoiceError(error)
         if len(owned_colours) == 1:
             chosen_colour = owned_colours[0]
         else:
@@ -128,15 +132,15 @@ class Game:
     def play_action_card(
         self, card: cards.ActionCard, p: player.Player
     ) -> None:
-        if card.action() == cards.ActionType.DEAL_BREAKER:
-            raise NotImplementedError()
-        if card.action() == cards.ActionType.SLY_DEAL:
-            raise NotImplementedError()
-        if card.action() == cards.ActionType.FORCED_DEAL:
+        if (
+            card.action() == cards.ActionType.DEAL_BREAKER
+            or card.action() == cards.ActionType.SLY_DEAL
+            or card.action() == cards.ActionType.FORCED_DEAL
+        ):
             raise NotImplementedError()
         if card.action().name.startswith("RENT"):
-            raise NotImplementedError()
-        if card.action() == cards.ActionType.DEBT_COLLECTOR:
+            self.play_rent_card(card, p)
+        elif card.action() == cards.ActionType.DEBT_COLLECTOR:
             self.play_debt_collector_card(p)
         elif card.action() == cards.ActionType.ITS_MY_BIRTHDAY:
             self.play_birthday_card(p)
@@ -159,8 +163,8 @@ class Game:
                 self.win.stdscr, _action_input_validation
             )
             if choice == 1:
-                raise NotImplementedError("Action card play not implemented")
-            if choice == 2:
+                self.play_action_card(card, p)
+            elif choice == 2:
                 p.add_to_bank(card)
             else:
                 raise ValueError("Invalid choice for action card")

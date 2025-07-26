@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 
-import util
-
 
 class Card(ABC):
     @abstractmethod
@@ -17,16 +15,20 @@ class Card(ABC):
     def card_type(self) -> str:
         pass
 
+    @abstractmethod
+    def pretty(self) -> str:
+        pass
+
 
 class PropertyColour(Enum):
     BROWN = "brown"
-    LIGHT_BLUE = "light_blue"
+    LIGHT_BLUE = "light blue"
     PINK = "pink"
     ORANGE = "orange"
     RED = "red"
     YELLOW = "yellow"
     GREEN = "green"
-    DARK_BLUE = "dark_blue"
+    DARK_BLUE = "dark blue"
     RAILROAD = "railroad"
     UTILITY = "utility"
 
@@ -98,7 +100,7 @@ class PropertyCard(Card):
     def colour(self) -> PropertyColour:
         return self._colour
 
-    def __str__(self) -> str:
+    def pretty(self) -> str:
         colour_str = self._colour.name.replace("_", " ").title()
         lines = [self._name, colour_str, f"£{self._value}"]
         width = max(len(line) for line in lines) + 4
@@ -106,6 +108,9 @@ class PropertyCard(Card):
         bottom = f"└{'─' * (width - 2)}┘"
         content = "\n".join(f"│ {line:<{width - 4}} │" for line in lines)
         return f"{top}\n{content}\n{bottom}"
+
+    def __str__(self) -> str:
+        return f"Property({self._name}, £{self._value}, {self._colour})"
 
     def __repr__(self) -> str:
         return f"Property({self._name}, £{self._value}, {self._colour})"
@@ -173,19 +178,20 @@ class ActionCard(Card):
         )
         return f"{parts[0]} {coloured}"
 
-    def __str__(self) -> str:
+    def pretty(self) -> str:
         action_str = self._action.name.replace("_", " ").title()
-        if self._action.name.startswith("RENT_"):
-            action_str = self.colour_rent_names(action_str)
         lines = [action_str, "", f"£{self._value}"]
-        width = max(len(util.strip_ansi(line)) for line in lines) + 4
+        width = max(len(line) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
         content = "\n".join(f"│ {line:<{width - 4}} │" for line in lines)
         return f"{top}\n{content}\n{bottom}"
 
+    def __str__(self) -> str:
+        return f"Action({self._name}, £{self._value})"
+
     def __repr__(self) -> str:
-        return f"Action({self._name}, £{self._value}, {self._action})"
+        return self.__str__()
 
 
 class MoneyCard(Card):
@@ -201,13 +207,16 @@ class MoneyCard(Card):
     def card_type(self) -> str:
         return "money"
 
-    def __str__(self) -> str:
+    def pretty(self) -> str:
         lines = ["Money", "", f"£{self._value}"]
         width = max(len(line) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
         content = "\n".join(f"│ {line:<{width - 4}} │" for line in lines)
         return f"{top}\n{content}\n{bottom}"
+
+    def __str__(self) -> str:
+        return f"Money(£{self._value})"
 
     def __repr__(self) -> str:
         return f"Money(£{self._value})"
@@ -232,9 +241,7 @@ MONEY_COLOUR = "\033[93m"  # Bright yellow for money cards
 RESET_COLOUR = "\033[0m"
 
 
-def colour_card_str(card: Card, ansi: bool = False) -> str:
-    if not ansi:
-        return str(card)
+def colour_card_str(card: Card) -> str:
     card_lines = str(card).split("\n")
     if isinstance(card, PropertyCard):
         colour_code = PROPERTY_COLOUR_CODES.get(card.colour())
@@ -252,18 +259,16 @@ def colour_card_str(card: Card, ansi: bool = False) -> str:
     return str(card)
 
 
-def fmt_cards_side_by_side(cards: list[Card], ansi=False) -> list[str]:
-    card_lines = [colour_card_str(card, ansi).split("\n") for card in cards]
+def fmt_cards_side_by_side(cards: list[Card]) -> list[str]:
+    card_lines = [card.pretty().split("\n") for card in cards]
     for i, c in enumerate(card_lines):
         c.insert(0, f"{i + 1}.")
     max_height = max(len(lines) for lines in card_lines)
     for i, lines in enumerate(card_lines):
-        # Calculate visible width, ignoring ANSI codes
-        card_width = max(len(util.strip_ansi(line)) for line in lines)
+        card_width = max(len(line) for line in lines)
         # Pad each line to visible card width
         card_lines[i] = [
-            line + " " * (card_width - len(util.strip_ansi(line)))
-            for line in lines
+            line + " " * (card_width - len(line)) for line in lines
         ]
         while len(card_lines[i]) < max_height:
             card_lines[i].append(" " * card_width)
