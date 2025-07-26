@@ -1,4 +1,5 @@
 import curses
+import player
 import util
 
 
@@ -51,6 +52,16 @@ class Window:
         self.hand_window.addstr(10, 0, "Choose an option:")
         self.hand_window.addstr(11, 0, "1. Play action")
         self.hand_window.addstr(12, 0, "2. Add to bank")
+        self.hand_window.refresh()
+
+    def print_target_player_dialog(
+        self, players: list[player.Player], exclude: player.Player | None = None
+    ) -> None:
+        self.hand_window.addstr(10, 0, "Choose a player to target:")
+        for idx, p in enumerate(players):
+            if p == exclude:
+                continue
+            self.hand_window.addstr(11 + idx, 0, f"{idx + 1}. {p.name}")
         self.hand_window.refresh()
 
     def clear(self):

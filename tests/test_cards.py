@@ -1,16 +1,16 @@
 import unittest
-import card
+import cards
 import util
 
 
 class TestPrintCardsSideBySide(unittest.TestCase):
     def test_print_five_cards(self):
-        cards = [
-            card.PropertyCard("Park Lane", 4, card.PropertyColour.DARK_BLUE),
-            card.ActionCard("Deal Breaker", 5, card.ActionType.DEAL_BREAKER),
-            card.MoneyCard(5),
+        deck = [
+            cards.PropertyCard("Park Lane", 4, cards.PropertyColour.DARK_BLUE),
+            cards.ActionCard("Deal Breaker", 5, cards.ActionType.DEAL_BREAKER),
+            cards.MoneyCard(5),
         ]
-        output = "\n".join(card.fmt_cards_side_by_side(cards))
+        output = "\n".join(cards.fmt_cards_side_by_side(deck))
         # The expected output will contain ANSI codes and box drawing characters.
         # For a robust test, strip ANSI codes and compare the visible layout.
         visible_output = util.strip_ansi(output)

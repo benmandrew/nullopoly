@@ -1,9 +1,9 @@
 import unittest
-import card
-from game import GameState
+import cards
+import game
 
 
-class DummyCard(card.Card):
+class DummyCard(cards.Card):
     def name(self) -> str:
         return "Dummy"
 
@@ -14,14 +14,13 @@ class DummyCard(card.Card):
         return "dummy"
 
 
-class TestGameState(unittest.TestCase):
+class TestGame(unittest.TestCase):
     def test_players_start_with_five_cards(self):
-        player_names = ["Alice", "Bob", "Charlie"]
         # Fill the deck with enough dummy cards
         deck = [DummyCard() for _ in range(15)]
-        game_state = GameState(player_names, deck)
-        game_state.start()
-        for player in game_state.players:
+        g = game.Game(["Alice", "Bob", "Charlie"], deck)
+        g.start()
+        for player in g.players:
             self.assertEqual(len(player.hand), 5)
 
 
