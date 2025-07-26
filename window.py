@@ -42,6 +42,20 @@ class LogWindow:
         self.win.refresh()
 
 
+COLOUR_MAP = {
+    cards.PropertyColour.BROWN: 1,
+    cards.PropertyColour.LIGHT_BLUE: 2,
+    cards.PropertyColour.PINK: 3,
+    cards.PropertyColour.ORANGE: 4,
+    cards.PropertyColour.RED: 5,
+    cards.PropertyColour.YELLOW: 6,
+    cards.PropertyColour.GREEN: 7,
+    cards.PropertyColour.DARK_BLUE: 8,
+    cards.PropertyColour.RAILROAD: 9,
+    cards.PropertyColour.UTILITY: 10,
+}
+
+
 class Window:
     def __init__(self, stdscr: curses.window, n_players: int):
         self.stdscr = stdscr
@@ -62,11 +76,48 @@ class Window:
                     half_height - log_height, table_width, 0, table_width * i
                 )
             )
+        self.init_colours()
+
+    def init_colours(self) -> None:
+        assert curses.has_colors(), "Terminal does not support colours"
+        assert (
+            curses.can_change_color()
+        ), "Terminal does not support changing colours"
+        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
+        curses.init_pair(3, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+        curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        curses.init_pair(5, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(6, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        curses.init_pair(7, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(8, curses.COLOR_BLUE, curses.COLOR_BLACK)
+        curses.init_pair(9, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        curses.init_pair(10, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
     def clear_table_window(self, win: curses.window) -> None:
         win.clear()
         win.border(0, 0, 0, 0, 0, 0, 0, 0)
         win.refresh()
+
+    def print_property(
+        self,
+        win: curses.window,
+        colour: cards.PropertyColour,
+        properties: player.PropertySet,
+        idx: int,
+    ) -> None:
+        cards_str = ", ".join(
+            f"{card.name()} (£{card.value()})" for card in properties.cards
+        )
+        # Use a bitwise flag to bold the text if the set is complete
+        completed = curses.A_BOLD if properties.is_complete() else 0
+        win.addstr(
+            idx + 3,
+            4,
+            colour.pretty(),
+            completed | curses.color_pair(COLOUR_MAP[colour]),
+        )
+        win.addstr(idx + 3, 19, cards_str, completed)
 
     def print_player_state(self, win: curses.window, p: player.Player) -> None:
         self.clear_table_window(win)
@@ -76,10 +127,7 @@ class Window:
         for colour, properties in p.properties.items():
             if not properties.cards:
                 continue
-            cards_str = ", ".join(
-                f"{card.name()} (£{card.value()})" for card in properties.cards
-            )
-            win.addstr(idx + 3, 4, f"{colour.name.title():<15}: {cards_str}")
+            self.print_property(win, colour, properties, idx)
             idx += 1
         bank_str = ", ".join(f"£{card.value()}" for card in p.bank)
         win.addstr(idx + 3, 2, f"Bank (£{p.total_bank_value()}): {bank_str}")
@@ -104,7 +152,7 @@ class Window:
         played_card_idx: int,
     ) -> None:
         self.clear_hand()
-        self.hand_window.addstr(1, 2, f"It's {p.name}'s turn")
+        self.hand_window.addstr(1, 2, f"It's {p.name}'s turn", curses.A_BOLD)
         for idx, line in enumerate(p.fmt_hand()):
             self.hand_window.addstr(idx + 2, 2, line)
         self.hand_window.addstr(
@@ -159,9 +207,19 @@ class Window:
         self.hand_window.addstr(2, 2, "Choose a colour to charge rent on:")
         for idx, (colour, rent) in enumerate(colours):
             self.hand_window.addstr(
-                3 + idx, 2, f"{idx + 1}. {colour.name} (£{rent})"
+                3 + idx, 2, f"{idx + 1}. {colour.pretty()} (£{rent})"
             )
         self.hand_window.refresh()
+
+    def game_over(self) -> None:
+        self.clear_hand()
+        self.hand_window.addstr(1, 2, "Game over!")
+        self.hand_window.addstr(2, 2, "Press Enter to close.")
+        self.hand_window.refresh()
+        while True:
+            key = self.stdscr.getch()
+            if key in (10, 13):  # Enter key
+                break
 
     def log(self, message: str) -> None:
         self.log_window.log(message)

@@ -227,3 +227,20 @@ class Game:
             return key.isdigit() and 1 <= int(key) <= len(p.hand)
 
         return self.win.get_number_input(validation)
+
+    def check_win(self) -> bool:
+        """
+        Check if any player has won the game.
+        """
+        has_won = [p for p in self.players if p.has_won()]
+        if not has_won:
+            return False
+        if len(has_won) == 1:
+            winner = has_won[0]
+            self.win.print_action_dialog()
+            self.win.log(f"{winner.name} has won the game!")
+            self.win.refresh()
+            return True
+        winner_names = ", ".join(p.name for p in has_won)
+        self.win.log(f"{winner_names} have drawn!")
+        return True

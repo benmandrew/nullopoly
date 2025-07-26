@@ -32,6 +32,9 @@ class PropertyColour(Enum):
     RAILROAD = "railroad"
     UTILITY = "utility"
 
+    def pretty(self) -> str:
+        return self.name.replace("_", " ").title()
+
 
 PROPERTY_RENTS: dict[PropertyColour, list[int]] = {
     PropertyColour.BROWN: [1, 2],

@@ -146,18 +146,14 @@ class Player:
         )
         return key.isdigit() and 1 <= int(key) <= n_properties
 
-    def fmt_visible_state(self) -> list[str]:
-        lines = [f"{self.name}", "Properties:"]
-        for colour, prop_set in self.properties.items():
-            if not prop_set.cards:
-                continue
-            cards_str = ", ".join(
-                f"{card.name()} (£{card.value()})" for card in prop_set.cards
-            )
-            lines.append(f"  {colour.name.title():<15}: {cards_str}")
-        bank_str = ", ".join(f"£{card.value()}" for card in self.bank)
-        lines.append(f"Bank (£{self.total_bank_value()}): {bank_str}")
-        return lines
+    def has_won(self) -> bool:
+        """
+        Returns True if the player has at least three complete property sets.
+        """
+        complete_sets = sum(
+            1 for prop_set in self.properties.values() if prop_set.is_complete()
+        )
+        return complete_sets >= 3
 
     def fmt_hand(self) -> list[str]:
         return cards.fmt_cards_side_by_side(self.hand)
