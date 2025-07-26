@@ -1,7 +1,14 @@
 import curses
+from collections.abc import Callable
 
 import cards
 import player
+
+
+class InvalidChoiceError(Exception):
+    """
+    Raised when the option taken is invalid.
+    """
 
 
 class LogWindow:
@@ -56,24 +63,34 @@ class Window:
                 )
             )
 
-    def clear_table_windows(self) -> None:
-        for table_window in self.table_windows:
-            table_window.clear()
-            table_window.border(0, 0, 0, 0, 0, 0, 0, 0)
-            table_window.refresh()
+    def clear_table_window(self, win: curses.window) -> None:
+        win.clear()
+        win.border(0, 0, 0, 0, 0, 0, 0, 0)
+        win.refresh()
+
+    def print_player_state(self, win: curses.window, p: player.Player) -> None:
+        self.clear_table_window(win)
+        win.addstr(1, 2, f"{p.name}", curses.A_BOLD)
+        win.addstr(2, 2, "Properties:")
+        idx = 0
+        for colour, properties in p.properties.items():
+            if not properties.cards:
+                continue
+            cards_str = ", ".join(
+                f"{card.name()} (£{card.value()})" for card in properties.cards
+            )
+            win.addstr(idx + 3, 4, f"{colour.name.title():<15}: {cards_str}")
+            idx += 1
+        bank_str = ", ".join(f"£{card.value()}" for card in p.bank)
+        win.addstr(idx + 3, 2, f"Bank (£{p.total_bank_value()}): {bank_str}")
+        win.refresh()
 
     def print_game_state(self, players: list[player.Player]) -> None:
         assert len(players) == len(
             self.table_windows
         ), "Number of players must match number of table windows"
-        self.clear_table_windows()
         for table_window, p in zip(self.table_windows, players):
-            new_y = 0
-            lines = p.fmt_visible_state()
-            for idx, line in enumerate(lines):
-                table_window.addstr(idx + 1, 2, line)
-            new_y = max(new_y, len(lines))
-            table_window.refresh()
+            self.print_player_state(table_window, p)
 
     def clear_hand(self) -> None:
         self.hand_window.clear()
@@ -82,14 +99,13 @@ class Window:
 
     def print_hand(
         self,
-        player_name: str,
-        hand_lines: list[str],
+        p: player.Player,
         hand_len: int,
         played_card_idx: int,
     ) -> None:
         self.clear_hand()
-        self.hand_window.addstr(1, 2, f"It's {player_name}'s turn")
-        for idx, line in enumerate(hand_lines):
+        self.hand_window.addstr(1, 2, f"It's {p.name}'s turn")
+        for idx, line in enumerate(p.fmt_hand()):
             self.hand_window.addstr(idx + 2, 2, line)
         self.hand_window.addstr(
             9,
@@ -137,16 +153,25 @@ class Window:
         self.hand_window.refresh()
 
     def print_rent_colour_choice(
-        self, colours: list[cards.PropertyColour]
+        self, colours: list[tuple[cards.PropertyColour, int]]
     ) -> None:
         self.clear_hand()
         self.hand_window.addstr(2, 2, "Choose a colour to charge rent on:")
-        for idx, colour in enumerate(colours):
-            self.hand_window.addstr(3 + idx, 2, f"{idx + 1}. {colour.name}")
+        for idx, (colour, rent) in enumerate(colours):
+            self.hand_window.addstr(
+                3 + idx, 2, f"{idx + 1}. {colour.name} (£{rent})"
+            )
         self.hand_window.refresh()
 
     def log(self, message: str) -> None:
         self.log_window.log(message)
+
+    def get_number_input(self, validation: Callable[[str], bool]) -> int:
+        while True:
+            key = self.stdscr.getkey()
+            if validation(key):
+                return int(key)
+            self.log("Invalid input, try again")
 
     def clear(self):
         self.stdscr.clear()

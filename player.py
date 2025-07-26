@@ -83,6 +83,11 @@ class Player:
             for card in property_set.cards
         ]
 
+    def n_properties(self) -> int:
+        return sum(
+            len(properties.cards) for properties in self.properties.values()
+        )
+
     def get_card_in_hand(self, i: int) -> cards.Card:
         """
         Get a card from the player's hand by index.
@@ -155,6 +160,4 @@ class Player:
         return lines
 
     def fmt_hand(self) -> list[str]:
-        lines = ["Hand:"]
-        lines.extend(cards.fmt_cards_side_by_side(self.hand))
-        return lines
+        return cards.fmt_cards_side_by_side(self.hand)

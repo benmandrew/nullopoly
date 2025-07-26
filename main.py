@@ -1,16 +1,7 @@
 import curses
 
 import game
-import player
-import util
 import window
-
-
-def get_card_choice(stdscr: curses.window, p: player.Player) -> int:
-    def validation(key: str) -> bool:
-        return key.isdigit() and 1 <= int(key) <= len(p.hand)
-
-    return util.get_number_input(stdscr, validation)
 
 
 def print_game_state(stdscr: curses.window, g: game.Game) -> int:
@@ -39,16 +30,15 @@ def curses_main(stdscr: curses.window) -> None:
         while n_cards_played < 3:
             win.print_game_state(g.players)
             win.print_hand(
-                current_player.name,
-                current_player.fmt_hand(),
+                current_player,
                 len(current_player.hand),
                 n_cards_played,
             )
             try:
-                choice = get_card_choice(stdscr, current_player)
+                choice = g.get_card_choice(current_player)
                 c = current_player.get_card_in_hand(choice - 1)
                 g.play_card(c, current_player)
-            except util.InvalidChoiceError:
+            except window.InvalidChoiceError:
                 continue
             n_cards_played += 1
             current_player.remove_card_from_hand(choice - 1)

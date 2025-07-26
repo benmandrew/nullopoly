@@ -4,7 +4,6 @@ from typing import cast
 import cards
 import parse_deck
 import player
-import util
 import window
 
 
@@ -58,7 +57,6 @@ class Game:
 
     def end_turn(self) -> None:
         self.current_turn += 1
-        # self.win.log_window.clear()
         self.next_player()
 
     def get_player(self, name: str) -> player.Player | None:
@@ -88,25 +86,26 @@ class Game:
             action_type in cards.RENT_CARD_COLOURS
         ), f"Not a rent card: {action_type}"
         colour_options = cards.RENT_CARD_COLOURS[action_type]
-        owned_colours = [
-            c for c in colour_options if p.properties[c].count() > 0
-        ]
-        if not owned_colours:
+        owned_colours_with_rents = []
+        for c in colour_options:
+            owned_colours_with_rents.append((c, p.properties[c].rent()))
+        if not owned_colours_with_rents:
             self.win.log(
                 "You do not own any properties of the required colours"
             )
-            raise util.InvalidChoiceError()
-        if len(owned_colours) == 1:
-            chosen_colour = owned_colours[0]
-        else:
-            self.win.print_rent_colour_choice(owned_colours)
+            raise window.InvalidChoiceError()
+        if len(owned_colours_with_rents) == 1:
+            return owned_colours_with_rents[0][1]
 
-            def validation(key: str) -> bool:
-                return key.isdigit() and 1 <= int(key) <= len(owned_colours)
+        self.win.print_rent_colour_choice(owned_colours_with_rents)
 
-            choice = util.get_number_input(self.win.stdscr, validation)
-            chosen_colour = owned_colours[choice - 1]
-        return p.properties[chosen_colour].rent()
+        def validation(key: str) -> bool:
+            return key.isdigit() and 1 <= int(key) <= len(
+                owned_colours_with_rents
+            )
+
+        choice = self.win.get_number_input(validation)
+        return owned_colours_with_rents[choice - 1][1]
 
     def play_rent_card(self, card: cards.ActionCard, p: player.Player) -> None:
         rent_amount = self.get_rent_amount(card, p)
@@ -127,11 +126,12 @@ class Game:
             if target != p:
                 self.transfer_payment(target, p, 2)
         self.win.log(
-            f"It's {p.name}'s birthday so they collected £2 from each player"
+            f"{p.name} collected £2 from each player for their birthday"
         )
 
     def play_debt_collector_card(self, p: player.Player) -> None:
         target = self.choose_player_target(exclude=p)
+        self.win.log(f"{p.name} collected £5 debt from {target.name}")
         self.transfer_payment(target, p, 5)
 
     def play_pass_go(self, p: player.Player) -> None:
@@ -168,9 +168,7 @@ class Game:
             p.add_to_bank(card)
         elif isinstance(card, cards.ActionCard):
             self.win.print_action_dialog()
-            choice = util.get_number_input(
-                self.win.stdscr, _action_input_validation
-            )
+            choice = self.win.get_number_input(_action_input_validation)
             if choice == 1:
                 self.play_action_card(card, p)
             elif choice == 2:
@@ -188,18 +186,14 @@ class Game:
     ) -> player.Player:
         self.win.print_target_player_dialog(self.players, exclude)
         without_exclude = [p for p in self.players if p != exclude]
-        choice = util.get_number_input(
-            self.win.stdscr, self._player_input_validation
-        )
+        choice = self.win.get_number_input(self._player_input_validation)
         return without_exclude[choice - 1]
 
     def choose_property_target(
         self, target: player.Player
     ) -> cards.PropertyCard:
         self.win.print_target_property_dialog(target)
-        choice = util.get_number_input(
-            self.win.stdscr, target.property_input_validation
-        )
+        choice = self.win.get_number_input(target.property_input_validation)
         return target.properties_to_list()[choice - 1]
 
     def get_payment(
@@ -227,3 +221,9 @@ class Game:
             amount -= property_card.value()
             charged_properties.append(property_card)
         return charged_properties
+
+    def get_card_choice(self, p: player.Player) -> int:
+        def validation(key: str) -> bool:
+            return key.isdigit() and 1 <= int(key) <= len(p.hand)
+
+        return self.win.get_number_input(validation)

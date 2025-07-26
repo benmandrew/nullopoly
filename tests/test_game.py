@@ -42,7 +42,7 @@ class TestPayments(unittest.TestCase):
         )
 
     def test_get_payment_1(self):
-        with patch("util.get_number_input", side_effect=[]):
+        with patch.object(self.g, "get_number_input", side_effect=[]):
             money, properties = self.g.get_payment(self.player, 5)
             charged_cards = strip_and_join(
                 cards.fmt_cards_side_by_side(money + properties)
@@ -64,7 +64,7 @@ class TestPayments(unittest.TestCase):
             self.assertEqual(len(self.player.properties_to_list()), 2)
 
     def test_get_payment_2(self):
-        with patch("util.get_number_input", side_effect=[1]):
+        with patch.object(self.g, "get_number_input", side_effect=[1]):
             money, properties = self.g.get_payment(self.player, 10)
             charged_cards = strip_and_join(
                 cards.fmt_cards_side_by_side(money + properties)
@@ -86,7 +86,7 @@ class TestPayments(unittest.TestCase):
             self.assertEqual(len(self.player.properties_to_list()), 1)
 
     def test_get_payment_3(self):
-        with patch("util.get_number_input", side_effect=[1, 1]):
+        with patch.object(self.g, "get_number_input", side_effect=[1, 1]):
             money, properties = self.g.get_payment(self.player, 20)
             charged_cards = strip_and_join(
                 cards.fmt_cards_side_by_side(money + properties)
@@ -128,7 +128,7 @@ class TestActionCards(unittest.TestCase):
         self.p2.add_to_bank(cards.MoneyCard(1))
         with patch.object(
             self.g, "choose_player_target", return_value=self.p2
-        ), patch("util.get_number_input", return_value=1):
+        ), patch.object(self.g, "get_number_input", return_value=1):
             self.g.play_action_card(action_card, self.p1)
         self.assertEqual(self.p1.total_bank_value(), 6)
         self.assertEqual(self.p2.total_bank_value(), 1)
@@ -146,7 +146,7 @@ class TestActionCards(unittest.TestCase):
         self.p3.add_property(
             cards.PropertyCard("Prop", 2, cards.PropertyColour.RED)
         )
-        with patch("util.get_number_input", return_value=1):
+        with patch.object(self.g, "get_number_input", return_value=1):
             self.g.play_action_card(action_card, self.p1)
             self.assertEqual(self.p2.total_bank_value(), 1)
             self.assertEqual(self.p3.total_bank_value(), 0)
@@ -208,7 +208,7 @@ class TestRentCards(unittest.TestCase):
             "Rent Brown/Light Blue", 1, cards.ActionType.RENT_BROWN_LIGHT_BLUE
         )
         # Patch rent colour choice to select BROWN (index 1)
-        with patch("util.get_number_input", return_value=1):
+        with patch.object(self.g, "get_number_input", return_value=1):
             self.g.play_rent_card(rent_card, self.p1)
         # Brown rent for 1 property is 1
         self.assertEqual(self.p1.total_bank_value(), 2)
@@ -220,7 +220,7 @@ class TestRentCards(unittest.TestCase):
             "Rent Brown/Light Blue", 1, cards.ActionType.RENT_BROWN_LIGHT_BLUE
         )
         # Patch rent colour choice to select LIGHT_BLUE (index 2)
-        with patch("util.get_number_input", return_value=2):
+        with patch.object(self.g, "get_number_input", return_value=2):
             self.g.play_rent_card(rent_card, self.p1)
         # Light Blue rent for 2 properties is 2
         self.assertEqual(self.p1.total_bank_value(), 4)
@@ -237,7 +237,7 @@ class TestRentCards(unittest.TestCase):
             "Rent Green/Dark Blue", 1, cards.ActionType.RENT_GREEN_DARK_BLUE
         )
         # Patch rent colour choice to select DARK BLUE (index 1)
-        with patch("util.get_number_input", return_value=2):
+        with patch.object(self.g, "get_number_input", return_value=2):
             self.g.play_rent_card(rent_card, self.p1)
         # Dark Blue rent for 1 property is 3
         self.assertEqual(self.p1.total_bank_value(), 6)
@@ -251,7 +251,7 @@ class TestRentCards(unittest.TestCase):
         )
         self.p2.add_to_bank(cards.MoneyCard(2))
         rent_card = cards.ActionCard("Rent Wild", 1, cards.ActionType.RENT_WILD)
-        with patch("util.get_number_input", side_effect=[2, 1]):
+        with patch.object(self.g, "get_number_input", side_effect=[2, 1]):
             self.g.play_rent_card(rent_card, self.p1)
         # Green rent for 1 property is 2
         self.assertEqual(self.p1.total_bank_value(), 2)
