@@ -61,6 +61,25 @@ class ActionType(Enum):
     PASS_GO = "pass_go"
 
 
+RENT_CARD_COLOURS = {
+    ActionType.RENT_BROWN_LIGHT_BLUE: [
+        PropertyColour.BROWN,
+        PropertyColour.LIGHT_BLUE,
+    ],
+    ActionType.RENT_PINK_ORANGE: [PropertyColour.PINK, PropertyColour.ORANGE],
+    ActionType.RENT_RED_YELLOW: [PropertyColour.RED, PropertyColour.YELLOW],
+    ActionType.RENT_GREEN_DARK_BLUE: [
+        PropertyColour.GREEN,
+        PropertyColour.DARK_BLUE,
+    ],
+    ActionType.RENT_RAILROAD_UTILITY: [
+        PropertyColour.RAILROAD,
+        PropertyColour.UTILITY,
+    ],
+    ActionType.RENT_WILD: list(PropertyColour),
+}
+
+
 class PropertyCard(Card):
     def __init__(self, name: str, value: int, colour: PropertyColour):
         self._name = name

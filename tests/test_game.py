@@ -41,25 +41,53 @@ class TestPayments(unittest.TestCase):
             cards.PropertyCard("Property2", 2, cards.PropertyColour.RED)
         )
 
-    def test_charge_payment_1(self):
+    def test_get_payment_1(self):
         with patch("util.get_number_input", side_effect=[]):
-            money, properties = self.g.charge_payment(self.player, 5)
-            self.assertEqual(len(money), 1)
-            self.assertEqual(len(properties), 0)
+            money, properties = self.g.get_payment(self.player, 5)
+            charged_cards = strip_and_join(
+                cards.fmt_cards_side_by_side(money + properties)
+            )
+            self.assertMultiLineEqual(
+                charged_cards,
+                format_expect(
+                    """
+                1.
+                ┌───────┐
+                │ Money │
+                │       │
+                │ £5    │
+                └───────┘
+            """
+                ),
+            )
             self.assertEqual(self.player.total_bank_value(), 3)
             self.assertEqual(len(self.player.properties_to_list()), 2)
 
-    def test_charge_payment_2(self):
+    def test_get_payment_2(self):
         with patch("util.get_number_input", side_effect=[1]):
-            money, properties = self.g.charge_payment(self.player, 10)
-            self.assertEqual(len(money), 2)
-            self.assertEqual(len(properties), 1)
+            money, properties = self.g.get_payment(self.player, 10)
+            charged_cards = strip_and_join(
+                cards.fmt_cards_side_by_side(money + properties)
+            )
+            self.assertMultiLineEqual(
+                charged_cards,
+                format_expect(
+                    """
+                1.       2.         3.
+                ┌───────┐┌─────────┐┌───────────┐
+                │ Money ││ Pass Go ││ Property1 │
+                │       ││         ││ Red       │
+                │ £5    ││ £3      ││ £2        │
+                └───────┘└─────────┘└───────────┘
+            """
+                ),
+            )
             self.assertEqual(self.player.total_bank_value(), 0)
             self.assertEqual(len(self.player.properties_to_list()), 1)
 
-    def test_charge_payment_3(self):
+    def test_get_payment_3(self):
         with patch("util.get_number_input", side_effect=[1, 1]):
-            money, properties = self.g.charge_payment(self.player, 20)
+            money, properties = self.g.get_payment(self.player, 20)
             charged_cards = strip_and_join(
                 cards.fmt_cards_side_by_side(money + properties)
             )

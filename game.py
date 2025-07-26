@@ -81,16 +81,46 @@ class Game:
     def discard_card(self, card: cards.Card) -> None:
         self.discard_pile.append(card)
 
+    def get_rent_amount(self, card: cards.ActionCard, p: player.Player) -> int:
+        action_type = card.action()
+        assert (
+            action_type in cards.RENT_CARD_COLOURS
+        ), f"Not a rent card: {action_type}"
+        colour_options = cards.RENT_CARD_COLOURS[action_type]
+        owned_colours = [
+            c for c in colour_options if p.properties[c].count() > 0
+        ]
+        assert owned_colours, "No owned colours for rent card"
+        if len(owned_colours) == 1:
+            chosen_colour = owned_colours[0]
+        else:
+            self.win.print_rent_colour_choice(owned_colours)
+
+            def validation(key: str) -> bool:
+                return key.isdigit() and 1 <= int(key) <= len(owned_colours)
+
+            choice = util.get_number_input(self.win.stdscr, validation)
+            chosen_colour = owned_colours[choice - 1]
+        return p.properties[chosen_colour].rent()
+
+    def play_rent_card(self, card: cards.ActionCard, p: player.Player) -> None:
+        rent_amount = self.get_rent_amount(card, p)
+        if card.action() is cards.ActionType.RENT_WILD:
+            target = self.choose_player_target(exclude=p)
+            self.transfer_payment(target, p, rent_amount)
+        else:
+            for target in self.players:
+                if target != p:
+                    self.transfer_payment(target, p, rent_amount)
+
     def play_birthday_card(self, p: player.Player) -> None:
         for target in self.players:
             if target != p:
-                money, properties = self.charge_payment(target, 2)
-                p.add_payment(cast(list[cards.Card], money + properties))
+                self.transfer_payment(target, p, 2)
 
     def play_debt_collector_card(self, p: player.Player) -> None:
         target = self.choose_player_target(exclude=p)
-        money, properties = self.charge_payment(target, 5)
-        p.add_payment(cast(list[cards.Card], money + properties))
+        self.transfer_payment(target, p, 5)
 
     def play_pass_go(self, p: player.Player) -> None:
         self.deal_to_player(p, 2)
@@ -159,7 +189,7 @@ class Game:
         )
         return target.properties_to_list()[choice - 1]
 
-    def charge_payment(
+    def get_payment(
         self, p: player.Player, amount: int
     ) -> tuple[
         list[cards.MoneyCard | cards.ActionCard], list[cards.PropertyCard]
@@ -167,6 +197,12 @@ class Game:
         charged_cards, remaining = p.charge_money_payment(amount)
         charged_properties = self.charge_properties(p, remaining)
         return charged_cards, charged_properties
+
+    def transfer_payment(
+        self, from_player: player.Player, to_player: player.Player, amount: int
+    ) -> None:
+        money, properties = self.get_payment(from_player, amount)
+        to_player.add_payment(cast(list[cards.Card], money + properties))
 
     def charge_properties(
         self, p: player.Player, amount: int

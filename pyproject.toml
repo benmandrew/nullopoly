@@ -21,6 +21,7 @@ lint.select = [
 disable = [
     "missing-docstring",
     "too-many-instance-attributes",
+    "too-many-public-methods",
 ]
 
 [tool.pylint.format]

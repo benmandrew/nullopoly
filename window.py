@@ -1,5 +1,6 @@
 import curses
 
+import cards
 import player
 import util
 
@@ -73,6 +74,14 @@ class Window:
                 prop_name = f"{prop.name()} ({prop.colour()})"
                 self.hand_window.addstr(11 + idx, 0, f"{idx + 1}. {prop_name}")
                 idx += 1
+        self.hand_window.refresh()
+
+    def print_rent_colour_choice(
+        self, colours: list[cards.PropertyColour]
+    ) -> None:
+        self.hand_window.addstr(10, 0, "Choose a colour to charge rent on:")
+        for idx, colour in enumerate(colours):
+            self.hand_window.addstr(11 + idx, 0, f"{idx + 1}. {colour.name}")
         self.hand_window.refresh()
 
     def clear(self):

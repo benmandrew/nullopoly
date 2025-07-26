@@ -46,7 +46,7 @@ def curses_main(stdscr: curses.window) -> None:
             if len(current_player.hand) == 0:
                 g.deal_from_empty(current_player)
             g.play_card(c, current_player)
-        g.charge_payment(current_player, 5)
+        g.get_payment(current_player, 5)
         g.end_turn()
 
 
