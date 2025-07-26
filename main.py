@@ -1,7 +1,8 @@
 import curses
+
 import game
-import util
 import player
+import util
 import window
 
 
@@ -27,7 +28,7 @@ def print_game_state(stdscr: curses.window, g: game.Game) -> int:
 def curses_main(stdscr: curses.window) -> None:
     curses.curs_set(0)  # Hide the cursor
     win = window.Window(stdscr)
-    g = game.Game(["Alice", "Bob"], "deck.json", win)
+    g = game.Game(["Alice", "Bob"], deck="deck.json", win=win)
     g.start()
     while True:
         current_player = g.current_player()
@@ -45,6 +46,7 @@ def curses_main(stdscr: curses.window) -> None:
             if len(current_player.hand) == 0:
                 g.deal_from_empty(current_player)
             g.play_card(c, current_player)
+        g.charge_payment(current_player, 5)
         g.end_turn()
 
 

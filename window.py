@@ -1,4 +1,5 @@
 import curses
+
 import player
 import util
 
@@ -62,6 +63,16 @@ class Window:
             if p == exclude:
                 continue
             self.hand_window.addstr(11 + idx, 0, f"{idx + 1}. {p.name}")
+        self.hand_window.refresh()
+
+    def print_target_property_dialog(self, target: player.Player) -> None:
+        self.hand_window.addstr(10, 0, f"Choose a property from {target.name}:")
+        idx = 0
+        for _, properties in target.properties.items():
+            for prop in properties.cards:
+                prop_name = f"{prop.name()} ({prop.colour()})"
+                self.hand_window.addstr(11 + idx, 0, f"{idx + 1}. {prop_name}")
+                idx += 1
         self.hand_window.refresh()
 
     def clear(self):

@@ -1,5 +1,5 @@
-import re
 import curses
+import re
 from collections.abc import Callable
 
 

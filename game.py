@@ -1,11 +1,11 @@
 import random
 from typing import cast
 
-import player
 import cards
 import parse_deck
-import window
+import player
 import util
+import window
 
 
 def _action_input_validation(key: str) -> bool:
@@ -17,7 +17,8 @@ class Game:
         self,
         player_names: list[str],
         deck: str | list[cards.Card],
-        win: window.Window | None = None,
+        win: window.Window,
+        starting_cards: int = 5,
     ):
         self.players: list[player.Player] = [
             player.Player(name) for name in player_names
@@ -26,11 +27,12 @@ class Game:
             self.deck: list[cards.Card] = parse_deck.from_json(deck)
         else:
             self.deck = deck
+        self.starting_cards = starting_cards
+        self.win = win
         self.current_player_index: int = 0
         self.current_turn: int = 0
         self.game_over: bool = False
         self.discard_pile: list[cards.Card] = []
-        self.win = win
 
     def start(self) -> None:
         random.shuffle(self.deck)
@@ -39,10 +41,9 @@ class Game:
 
     def deal_from_empty(self, p: player.Player) -> None:
         assert len(p.hand) == 0, "Player hand is not empty"
-        self.deal_to_player(p, 5)
+        self.deal_to_player(p, self.starting_cards)
 
     def deal_to_player(self, p: player.Player, count: int) -> None:
-        assert count > 0, "Count must be positive"
         for _ in range(count):
             p.add_to_hand(self.draw_card())
 
@@ -83,12 +84,12 @@ class Game:
     def play_birthday_card(self, p: player.Player) -> None:
         for target in self.players:
             if target != p:
-                money, properties = target.charge_payment(2)
+                money, properties = self.charge_payment(target, 2)
                 p.add_payment(cast(list[cards.Card], money + properties))
 
     def play_debt_collector_card(self, p: player.Player) -> None:
         target = self.choose_player_target(exclude=p)
-        money, properties = target.charge_payment(5)
+        money, properties = self.charge_payment(target, 5)
         p.add_payment(cast(list[cards.Card], money + properties))
 
     def play_pass_go(self, p: player.Player) -> None:
@@ -123,9 +124,6 @@ class Game:
         elif isinstance(card, cards.MoneyCard):
             p.add_to_bank(card)
         elif isinstance(card, cards.ActionCard):
-            assert (
-                self.win is not None
-            ), "Window must be set to play action cards"
             self.win.print_action_dialog()
             choice = util.get_number_input(
                 self.win.stdscr, _action_input_validation
@@ -145,12 +143,38 @@ class Game:
     def choose_player_target(
         self, exclude: player.Player | None = None
     ) -> player.Player:
-        assert (
-            self.win is not None
-        ), "Window must be set to choose player target"
         self.win.print_target_player_dialog(self.players, exclude)
         without_exclude = [p for p in self.players if p != exclude]
         choice = util.get_number_input(
             self.win.stdscr, self._player_input_validation
         )
         return without_exclude[choice - 1]
+
+    def choose_property_target(
+        self, target: player.Player
+    ) -> cards.PropertyCard:
+        self.win.print_target_property_dialog(target)
+        choice = util.get_number_input(
+            self.win.stdscr, target.property_input_validation
+        )
+        return target.properties_to_list()[choice - 1]
+
+    def charge_payment(
+        self, p: player.Player, amount: int
+    ) -> tuple[
+        list[cards.MoneyCard | cards.ActionCard], list[cards.PropertyCard]
+    ]:
+        charged_cards, remaining = p.charge_money_payment(amount)
+        charged_properties = self.charge_properties(p, remaining)
+        return charged_cards, charged_properties
+
+    def charge_properties(
+        self, p: player.Player, amount: int
+    ) -> list[cards.PropertyCard]:
+        charged_properties = []
+        while amount > 0 and p.properties_to_list():
+            property_card = self.choose_property_target(p)
+            p.remove_property(property_card)
+            amount -= property_card.value()
+            charged_properties.append(property_card)
+        return charged_properties

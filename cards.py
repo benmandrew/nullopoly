@@ -1,5 +1,6 @@
-from enum import Enum
 from abc import ABC, abstractmethod
+from enum import Enum
+
 import util
 
 
@@ -84,8 +85,11 @@ class PropertyCard(Card):
         width = max(len(line) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
-        content = "\n".join(f"│ {line:<{width-4}} │" for line in lines)
+        content = "\n".join(f"│ {line:<{width - 4}} │" for line in lines)
         return f"{top}\n{content}\n{bottom}"
+
+    def __repr__(self) -> str:
+        return f"Property({self._name}, £{self._value}, {self._colour})"
 
 
 class ActionCard(Card):
@@ -138,7 +142,7 @@ class ActionCard(Card):
         i = 1
         while i < len(parts):
             if i + 1 < len(parts):
-                two_word = f"{parts[i]} {parts[i+1]}"
+                two_word = f"{parts[i]} {parts[i + 1]}"
                 if two_word in {"Light Blue", "Dark Blue"}:
                     property_names.append(two_word)
                     i += 2
@@ -158,8 +162,11 @@ class ActionCard(Card):
         width = max(len(util.strip_ansi(line)) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
-        content = "\n".join(f"│ {line:<{width-4}} │" for line in lines)
+        content = "\n".join(f"│ {line:<{width - 4}} │" for line in lines)
         return f"{top}\n{content}\n{bottom}"
+
+    def __repr__(self) -> str:
+        return f"Action({self._name}, £{self._value}, {self._action})"
 
 
 class MoneyCard(Card):
@@ -180,8 +187,11 @@ class MoneyCard(Card):
         width = max(len(line) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
-        content = "\n".join(f"│ {line:<{width-4}} │" for line in lines)
+        content = "\n".join(f"│ {line:<{width - 4}} │" for line in lines)
         return f"{top}\n{content}\n{bottom}"
+
+    def __repr__(self) -> str:
+        return f"Money(£{self._value})"
 
 
 # ANSI colour codes for property colours
@@ -224,7 +234,7 @@ def colour_card_str(card: Card) -> str:
 def fmt_cards_side_by_side(cards: list[Card]) -> list[str]:
     card_lines = [colour_card_str(card).split("\n") for card in cards]
     for i, c in enumerate(card_lines):
-        c.insert(0, f"{i+1}.")
+        c.insert(0, f"{i + 1}.")
     max_height = max(len(lines) for lines in card_lines)
     for i, lines in enumerate(card_lines):
         # Calculate visible width, ignoring ANSI codes
@@ -236,15 +246,13 @@ def fmt_cards_side_by_side(cards: list[Card]) -> list[str]:
         ]
         while len(card_lines[i]) < max_height:
             card_lines[i].append(" " * card_width)
-    lines = [
+    return [
         "".join(card_lines[i][line_idx] for i in range(len(cards)))
         for line_idx in range(max_height)
     ]
-    return lines
 
 
 def colour_property_name(name: str) -> str:
-    # Map colour names to PropertyColour
     name_map = {
         "Brown": PropertyColour.BROWN,
         "Light Blue": PropertyColour.LIGHT_BLUE,
@@ -259,5 +267,5 @@ def colour_property_name(name: str) -> str:
     }
     colour = name_map.get(name)
     if colour:
-        return f"{RESET_COLOUR}{PROPERTY_COLOUR_CODES[colour]}{name}{RESET_COLOUR}{ACTION_COLOUR}"
+        return f"{RESET_COLOUR}{PROPERTY_COLOUR_CODES[colour]}{name}{RESET_COLOUR}{ACTION_COLOUR}"  # noqa: E501 pylint: disable=line-too-long
     return name

@@ -1,4 +1,5 @@
 import unittest
+
 import cards
 import util
 
@@ -11,8 +12,6 @@ class TestPrintCardsSideBySide(unittest.TestCase):
             cards.MoneyCard(5),
         ]
         output = "\n".join(cards.fmt_cards_side_by_side(deck))
-        # The expected output will contain ANSI codes and box drawing characters.
-        # For a robust test, strip ANSI codes and compare the visible layout.
         visible_output = util.strip_ansi(output)
         expected = (
             "1.           2.              3.       \n"

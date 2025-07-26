@@ -48,7 +48,7 @@ def parse_money_card(card_data: dict, idx: int) -> cards.MoneyCard:
 
 
 def from_json(filepath: str) -> list[cards.Card]:
-    with open(filepath, "rt", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         try:
             data = json.load(f)
         except json.JSONDecodeError as exc:
