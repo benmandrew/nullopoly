@@ -1,3 +1,5 @@
+import itertools
+
 import cards
 
 
@@ -100,20 +102,28 @@ class Player:
     def charge_money_payment(
         self, amount: int
     ) -> tuple[list[cards.MoneyCard | cards.ActionCard], int]:
-        charged_cards: list[cards.MoneyCard | cards.ActionCard] = []
-        remaining = amount
-        for card in self.bank:
-            if remaining <= 0:
-                break
-            if (
-                isinstance(card, (cards.MoneyCard, cards.ActionCard))
-                and card.value() <= remaining
-            ):
-                remaining -= card.value()
-                charged_cards.append(card)
-        for card in charged_cards:
-            self.bank.remove(card)
-        return charged_cards, remaining
+        """
+        Find the optimal set of cards to minimize overpayment.
+        """
+        bank_cards = list(self.bank)
+        n = len(bank_cards)
+        best_combo = None
+        best_total = None
+        for r in range(0, n):
+            for combo in itertools.combinations(bank_cards, r + 1):
+                total = sum(card.value() for card in combo)
+                if total >= amount and (
+                    best_total is None or total < best_total
+                ):
+                    best_total = total
+                    best_combo = combo
+        if best_combo is not None:
+            for card in best_combo:
+                self.bank.remove(card)
+            return list(best_combo), 0
+        total = sum(card.value() for card in bank_cards)
+        self.bank.clear()
+        return bank_cards, max(0, amount - total)
 
     def property_input_validation(self, key: str) -> bool:
         n_properties = sum(

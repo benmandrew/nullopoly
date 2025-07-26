@@ -213,7 +213,9 @@ MONEY_COLOUR = "\033[93m"  # Bright yellow for money cards
 RESET_COLOUR = "\033[0m"
 
 
-def colour_card_str(card: Card) -> str:
+def colour_card_str(card: Card, ansi: bool = False) -> str:
+    if not ansi:
+        return str(card)
     card_lines = str(card).split("\n")
     if isinstance(card, PropertyCard):
         colour_code = PROPERTY_COLOUR_CODES.get(card.colour())
@@ -231,8 +233,8 @@ def colour_card_str(card: Card) -> str:
     return str(card)
 
 
-def fmt_cards_side_by_side(cards: list[Card]) -> list[str]:
-    card_lines = [colour_card_str(card).split("\n") for card in cards]
+def fmt_cards_side_by_side(cards: list[Card], ansi=False) -> list[str]:
+    card_lines = [colour_card_str(card, ansi).split("\n") for card in cards]
     for i, c in enumerate(card_lines):
         c.insert(0, f"{i + 1}.")
     max_height = max(len(lines) for lines in card_lines)
