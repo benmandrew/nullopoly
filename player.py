@@ -142,7 +142,7 @@ class Player:
         return key.isdigit() and 1 <= int(key) <= n_properties
 
     def fmt_visible_state(self) -> list[str]:
-        lines = [f"Player: {self.name}", "Properties:"]
+        lines = [f"{self.name}", "Properties:"]
         for colour, prop_set in self.properties.items():
             if not prop_set.cards:
                 continue

@@ -58,7 +58,7 @@ class Game:
 
     def end_turn(self) -> None:
         self.current_turn += 1
-        self.win.log_window.clear()
+        # self.win.log_window.clear()
         self.next_player()
 
     def get_player(self, name: str) -> player.Player | None:
@@ -92,9 +92,10 @@ class Game:
             c for c in colour_options if p.properties[c].count() > 0
         ]
         if not owned_colours:
-            error = "You do not own any properties of the required colours."
-            self.win.print_invalid_choice(error)
-            raise util.InvalidChoiceError(error)
+            self.win.log(
+                "You do not own any properties of the required colours"
+            )
+            raise util.InvalidChoiceError()
         if len(owned_colours) == 1:
             chosen_colour = owned_colours[0]
         else:
@@ -112,21 +113,29 @@ class Game:
         if card.action() is cards.ActionType.RENT_WILD:
             target = self.choose_player_target(exclude=p)
             self.transfer_payment(target, p, rent_amount)
+            self.win.log(
+                f"{p.name} charged {target.name} £{rent_amount} in rent"
+            )
         else:
             for target in self.players:
                 if target != p:
                     self.transfer_payment(target, p, rent_amount)
+            self.win.log(f"{p.name} charged everybody £{rent_amount} in rent")
 
     def play_birthday_card(self, p: player.Player) -> None:
         for target in self.players:
             if target != p:
                 self.transfer_payment(target, p, 2)
+        self.win.log(
+            f"It's {p.name}'s birthday so they collected £2 from each player"
+        )
 
     def play_debt_collector_card(self, p: player.Player) -> None:
         target = self.choose_player_target(exclude=p)
         self.transfer_payment(target, p, 5)
 
     def play_pass_go(self, p: player.Player) -> None:
+        self.win.log(f"{p.name} passed GO and picked up two cards")
         self.deal_to_player(p, 2)
 
     def play_action_card(

@@ -29,7 +29,7 @@ def curses_main(stdscr: curses.window) -> None:
     curses.start_color()
     curses.curs_set(0)  # Hide the cursor
     assert curses.has_colors(), "Terminal does not support colors"
-    win = window.Window(stdscr)
+    win = window.Window(stdscr, n_players=2)
     g = game.Game(["Alice", "Bob"], deck="deck.json", win=win)
     g.start()
     while True:

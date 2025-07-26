@@ -36,33 +36,44 @@ class LogWindow:
 
 
 class Window:
-    def __init__(self, stdscr: curses.window):
+    def __init__(self, stdscr: curses.window, n_players: int):
         self.stdscr = stdscr
         height, width = self.stdscr.getmaxyx()
         half_height = height // 2
         log_height = 3
-        self.table_window = self.stdscr.subwin(
-            half_height - log_height, width, 0, 0
-        )
         self.log_window = LogWindow(
             self.stdscr, log_height, width, half_height - log_height, 0
         )
         self.hand_window = self.stdscr.subwin(
             height - half_height, width, half_height, 0
         )
-        self.hand_window.border(0, 0, 0, 0, 0, 0, 0, 0)
+        self.table_windows = []
+        for i in range(n_players):
+            table_width = width // n_players
+            self.table_windows.append(
+                self.stdscr.subwin(
+                    half_height - log_height, table_width, 0, table_width * i
+                )
+            )
+
+    def clear_table_windows(self) -> None:
+        for table_window in self.table_windows:
+            table_window.clear()
+            table_window.border(0, 0, 0, 0, 0, 0, 0, 0)
+            table_window.refresh()
 
     def print_game_state(self, players: list[player.Player]) -> None:
-        self.table_window.clear()
-        new_y = 0
-        _, scr_width = self.table_window.getmaxyx()
-        for i, p in enumerate(players):
+        assert len(players) == len(
+            self.table_windows
+        ), "Number of players must match number of table windows"
+        self.clear_table_windows()
+        for table_window, p in zip(self.table_windows, players):
+            new_y = 0
             lines = p.fmt_visible_state()
-            x_offset = scr_width * i // len(players)
             for idx, line in enumerate(lines):
-                self.table_window.addstr(idx, x_offset, line)
+                table_window.addstr(idx + 1, 2, line)
             new_y = max(new_y, len(lines))
-        self.table_window.refresh()
+            table_window.refresh()
 
     def clear_hand(self) -> None:
         self.hand_window.clear()
@@ -104,11 +115,11 @@ class Window:
     ) -> None:
         self.clear_hand()
         self.hand_window.addstr(2, 2, "Choose a player to target:")
-        idx = 1
+        idx = 0
         for p in players:
             if p == exclude:
                 continue
-            self.hand_window.addstr(3 + idx, 2, f"{idx}. {p.name}")
+            self.hand_window.addstr(3 + idx, 2, f"{idx + 1}. {p.name}")
             idx += 1
         self.hand_window.refresh()
 
@@ -134,7 +145,7 @@ class Window:
             self.hand_window.addstr(3 + idx, 2, f"{idx + 1}. {colour.name}")
         self.hand_window.refresh()
 
-    def print_invalid_choice(self, message: str) -> None:
+    def log(self, message: str) -> None:
         self.log_window.log(message)
 
     def clear(self):
