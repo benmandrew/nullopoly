@@ -177,5 +177,87 @@ class TestActionCards(unittest.TestCase):
         self.assertEqual(len(self.p1.hand), 3)
 
 
+class TestRentCards(unittest.TestCase):
+    def setUp(self):
+        self.mock_window = Mock()
+        self.g = game.Game(
+            ["P1", "P2", "P3"], [], self.mock_window, starting_cards=0
+        )
+        self.g.start()
+        self.p1 = self.g.get_player("P1")
+        self.p2 = self.g.get_player("P2")
+        self.p3 = self.g.get_player("P3")
+        # Give P1 properties in two colours
+        self.p1.add_property(
+            cards.PropertyCard("Brown1", 1, cards.PropertyColour.BROWN)
+        )
+        self.p1.add_property(
+            cards.PropertyCard("LightBlue1", 1, cards.PropertyColour.LIGHT_BLUE)
+        )
+        self.p1.add_property(
+            cards.PropertyCard("LightBlue2", 1, cards.PropertyColour.LIGHT_BLUE)
+        )
+        # Give P2 and P3 some money
+        self.p2.add_to_bank(cards.MoneyCard(1))
+        self.p2.add_to_bank(cards.MoneyCard(2))
+        self.p3.add_to_bank(cards.MoneyCard(1))
+        self.p3.add_to_bank(cards.MoneyCard(2))
+
+    def test_rent_brown_light_blue_brown(self):
+        rent_card = cards.ActionCard(
+            "Rent Brown/Light Blue", 1, cards.ActionType.RENT_BROWN_LIGHT_BLUE
+        )
+        # Patch rent colour choice to select BROWN (index 1)
+        with patch("util.get_number_input", return_value=1):
+            self.g.play_rent_card(rent_card, self.p1)
+        # Brown rent for 1 property is 1
+        self.assertEqual(self.p1.total_bank_value(), 2)
+        self.assertEqual(self.p2.total_bank_value(), 2)
+        self.assertEqual(self.p3.total_bank_value(), 2)
+
+    def test_rent_brown_light_blue_light_blue(self):
+        rent_card = cards.ActionCard(
+            "Rent Brown/Light Blue", 1, cards.ActionType.RENT_BROWN_LIGHT_BLUE
+        )
+        # Patch rent colour choice to select LIGHT_BLUE (index 2)
+        with patch("util.get_number_input", return_value=2):
+            self.g.play_rent_card(rent_card, self.p1)
+        # Light Blue rent for 2 properties is 2
+        self.assertEqual(self.p1.total_bank_value(), 4)
+        self.assertEqual(self.p2.total_bank_value(), 1)
+        self.assertEqual(self.p3.total_bank_value(), 1)
+
+    def test_rent_green_dark_blue(self):
+        # Give P1 a dark blue property
+        self.p1.add_property(
+            cards.PropertyCard("DarkBlue1", 1, cards.PropertyColour.DARK_BLUE)
+        )
+        self.p2.add_to_bank(cards.MoneyCard(2))
+        rent_card = cards.ActionCard(
+            "Rent Green/Dark Blue", 1, cards.ActionType.RENT_GREEN_DARK_BLUE
+        )
+        # Patch rent colour choice to select DARK BLUE (index 1)
+        with patch("util.get_number_input", return_value=2):
+            self.g.play_rent_card(rent_card, self.p1)
+        # Dark Blue rent for 1 property is 3
+        self.assertEqual(self.p1.total_bank_value(), 6)
+        self.assertEqual(self.p2.total_bank_value(), 2)
+        self.assertEqual(self.p3.total_bank_value(), 0)
+
+    def test_rent_wild(self):
+        # Give P1 a green property
+        self.p1.add_property(
+            cards.PropertyCard("Green1", 1, cards.PropertyColour.GREEN)
+        )
+        self.p2.add_to_bank(cards.MoneyCard(2))
+        rent_card = cards.ActionCard("Rent Wild", 1, cards.ActionType.RENT_WILD)
+        with patch("util.get_number_input", side_effect=[2, 1]):
+            self.g.play_rent_card(rent_card, self.p1)
+        # Green rent for 1 property is 2
+        self.assertEqual(self.p1.total_bank_value(), 2)
+        self.assertEqual(self.p2.total_bank_value(), 3)
+        self.assertEqual(self.p3.total_bank_value(), 3)
+
+
 if __name__ == "__main__":
     unittest.main()
