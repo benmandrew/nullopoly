@@ -90,14 +90,14 @@ class Game:
         for c in colour_options:
             owned_colours_with_rents.append((c, p.properties[c].rent()))
         if not owned_colours_with_rents:
-            self.win.log(
+            self.win.draw_log(
                 "You do not own any properties of the required colours"
             )
             raise window.InvalidChoiceError()
         if len(owned_colours_with_rents) == 1:
             return owned_colours_with_rents[0][1]
 
-        self.win.print_rent_colour_choice(owned_colours_with_rents)
+        self.win.hand.draw_rent_colour_choice(owned_colours_with_rents)
 
         def validation(key: str) -> bool:
             return key.isdigit() and 1 <= int(key) <= len(
@@ -112,30 +112,32 @@ class Game:
         if card.action() is cards.ActionType.RENT_WILD:
             target = self.choose_player_target(exclude=p)
             self.transfer_payment(target, p, rent_amount)
-            self.win.log(
+            self.win.draw_log(
                 f"{p.name} charged {target.name} £{rent_amount} in rent"
             )
         else:
             for target in self.players:
                 if target != p:
                     self.transfer_payment(target, p, rent_amount)
-            self.win.log(f"{p.name} charged everybody £{rent_amount} in rent")
+            self.win.draw_log(
+                f"{p.name} charged everybody £{rent_amount} in rent"
+            )
 
     def play_birthday_card(self, p: player.Player) -> None:
         for target in self.players:
             if target != p:
                 self.transfer_payment(target, p, 2)
-        self.win.log(
+        self.win.draw_log(
             f"{p.name} collected £2 from each player for their birthday"
         )
 
     def play_debt_collector_card(self, p: player.Player) -> None:
         target = self.choose_player_target(exclude=p)
-        self.win.log(f"{p.name} collected £5 debt from {target.name}")
+        self.win.draw_log(f"{p.name} collected £5 debt from {target.name}")
         self.transfer_payment(target, p, 5)
 
     def play_pass_go(self, p: player.Player) -> None:
-        self.win.log(f"{p.name} passed GO and picked up two cards")
+        self.win.draw_log(f"{p.name} passed GO and picked up two cards")
         self.deal_to_player(p, 2)
 
     def play_action_card(
@@ -167,7 +169,7 @@ class Game:
         elif isinstance(card, cards.MoneyCard):
             p.add_to_bank(card)
         elif isinstance(card, cards.ActionCard):
-            self.win.print_action_dialog()
+            self.win.hand.draw_action_dialog()
             choice = self.win.get_number_input(_action_input_validation)
             if choice == 1:
                 self.play_action_card(card, p)
@@ -184,7 +186,7 @@ class Game:
     def choose_player_target(
         self, exclude: player.Player | None = None
     ) -> player.Player:
-        self.win.print_target_player_dialog(self.players, exclude)
+        self.win.hand.draw_target_player_dialog(self.players, exclude)
         without_exclude = [p for p in self.players if p != exclude]
         choice = self.win.get_number_input(self._player_input_validation)
         return without_exclude[choice - 1]
@@ -192,7 +194,7 @@ class Game:
     def choose_property_target(
         self, target: player.Player
     ) -> cards.PropertyCard:
-        self.win.print_target_property_dialog(target)
+        self.win.hand.draw_target_property_dialog(target)
         choice = self.win.get_number_input(target.property_input_validation)
         return target.properties_to_list()[choice - 1]
 
@@ -237,10 +239,10 @@ class Game:
             return False
         if len(has_won) == 1:
             winner = has_won[0]
-            self.win.print_action_dialog()
-            self.win.log(f"{winner.name} has won the game!")
+            self.win.hand.draw_action_dialog()
+            self.win.draw_log(f"{winner.name} has won the game!")
             self.win.refresh()
             return True
         winner_names = ", ".join(p.name for p in has_won)
-        self.win.log(f"{winner_names} have drawn!")
+        self.win.draw_log(f"{winner_names} have drawn!")
         return True

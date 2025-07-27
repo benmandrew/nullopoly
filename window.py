@@ -62,20 +62,15 @@ class Window:
         height, width = self.stdscr.getmaxyx()
         half_height = height // 2
         log_height = 3
-        self.log_window = LogWindow(
+        self.log = LogWindow(
             self.stdscr, log_height, width, half_height - log_height, 0
         )
-        self.hand_window = self.stdscr.subwin(
-            height - half_height, width, half_height, 0
+        self.hand = Hand(
+            self.stdscr, height - half_height, width, half_height, 0
         )
-        self.table_windows = []
-        for i in range(n_players):
-            table_width = width // n_players
-            self.table_windows.append(
-                self.stdscr.subwin(
-                    half_height - log_height, table_width, 0, table_width * i
-                )
-            )
+        self.table = Table(
+            self.stdscr, n_players, half_height - log_height, width
+        )
         self.init_colours()
 
     def init_colours(self) -> None:
@@ -94,12 +89,72 @@ class Window:
         curses.init_pair(9, curses.COLOR_BLACK, curses.COLOR_WHITE)
         curses.init_pair(10, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
-    def clear_table_window(self, win: curses.window) -> None:
+    def game_over(self) -> None:
+        self.hand.game_over(self.stdscr)
+
+    def draw_log(self, message: str) -> None:
+        self.log.log(message)
+
+    def get_number_input(self, validation: Callable[[str], bool]) -> int:
+        while True:
+            key = self.stdscr.getkey()
+            if validation(key):
+                return int(key)
+            self.log.log("Invalid input, try again")
+
+    def clear(self):
+        self.stdscr.clear()
+
+    def addstr(self, y: int, x: int, string: str):
+        self.stdscr.addstr(y, x, string)
+
+    def refresh(self):
+        self.stdscr.refresh()
+
+    def getmaxyx(self) -> tuple[int, int]:
+        return self.stdscr.getmaxyx()
+
+    def getkey(self) -> str:
+        return self.stdscr.getkey()
+
+
+class Table:
+    def __init__(
+        self, stdscr: curses.window, n_players: int, height: int, width: int
+    ):
+        self.table_windows = []
+        for i in range(n_players):
+            table_width = width // n_players
+            self.table_windows.append(
+                stdscr.subwin(height, table_width, 0, table_width * i)
+            )
+
+    def clear(self, win: curses.window) -> None:
         win.clear()
         win.border(0, 0, 0, 0, 0, 0, 0, 0)
+
+    def draw(self, players: list[player.Player]) -> None:
+        assert len(players) == len(
+            self.table_windows
+        ), "Number of players must match number of table windows"
+        for table_window, p in zip(self.table_windows, players):
+            self.draw_player(table_window, p)
+
+    def draw_player(self, win: curses.window, p: player.Player) -> None:
+        self.clear(win)
+        win.addstr(1, 2, f"{p.name}", curses.A_BOLD)
+        win.addstr(2, 2, "Properties:")
+        idx = 0
+        for colour, properties in p.properties.items():
+            if not properties.cards:
+                continue
+            self.draw_property(win, colour, properties, idx)
+            idx += 1
+        bank_str = ", ".join(f"£{card.value()}" for card in p.bank)
+        win.addstr(idx + 3, 2, f"Bank (£{p.total_bank_value()}): {bank_str}")
         win.refresh()
 
-    def print_property(
+    def draw_property(
         self,
         win: curses.window,
         colour: cards.PropertyColour,
@@ -119,129 +174,89 @@ class Window:
         )
         win.addstr(idx + 3, 19, cards_str, completed)
 
-    def print_player_state(self, win: curses.window, p: player.Player) -> None:
-        self.clear_table_window(win)
-        win.addstr(1, 2, f"{p.name}", curses.A_BOLD)
-        win.addstr(2, 2, "Properties:")
-        idx = 0
-        for colour, properties in p.properties.items():
-            if not properties.cards:
-                continue
-            self.print_property(win, colour, properties, idx)
-            idx += 1
-        bank_str = ", ".join(f"£{card.value()}" for card in p.bank)
-        win.addstr(idx + 3, 2, f"Bank (£{p.total_bank_value()}): {bank_str}")
-        win.refresh()
 
-    def print_game_state(self, players: list[player.Player]) -> None:
-        assert len(players) == len(
-            self.table_windows
-        ), "Number of players must match number of table windows"
-        for table_window, p in zip(self.table_windows, players):
-            self.print_player_state(table_window, p)
+class Hand:
+    def __init__(
+        self, stdscr: curses.window, height: int, width: int, y: int, x: int
+    ):
+        self.win = stdscr.subwin(height, width, y, x)
 
-    def clear_hand(self) -> None:
-        self.hand_window.clear()
-        self.hand_window.border(0, 0, 0, 0, 0, 0, 0, 0)
-        self.hand_window.refresh()
+    def clear(self) -> None:
+        self.win.clear()
+        self.win.border(0, 0, 0, 0, 0, 0, 0, 0)
 
-    def print_hand(
+    def draw(
         self,
         p: player.Player,
         hand_len: int,
         played_card_idx: int,
     ) -> None:
-        self.clear_hand()
-        self.hand_window.addstr(1, 2, f"It's {p.name}'s turn", curses.A_BOLD)
+        self.clear()
+        self.win.addstr(1, 2, f"It's {p.name}'s turn", curses.A_BOLD)
         for idx, line in enumerate(p.fmt_hand()):
-            self.hand_window.addstr(idx + 2, 2, line)
-        self.hand_window.addstr(
+            self.win.addstr(idx + 2, 2, line)
+        self.win.addstr(
             9,
             2,
             f"{3 - played_card_idx} cards left to play this turn.",
         )
-        self.hand_window.addstr(
+        self.win.addstr(
             10,
             2,
             f"Choose a card to play (1-{hand_len}): ",
         )
-        self.hand_window.refresh()
+        self.win.refresh()
 
-    def print_action_dialog(self) -> None:
-        self.clear_hand()
-        self.hand_window.addstr(2, 2, "Choose an option:")
-        self.hand_window.addstr(3, 2, "1. Play action")
-        self.hand_window.addstr(4, 2, "2. Add to bank")
-        self.hand_window.refresh()
+    def draw_action_dialog(self) -> None:
+        self.clear()
+        self.win.addstr(2, 2, "Choose an option:")
+        self.win.addstr(3, 2, "1. Play action")
+        self.win.addstr(4, 2, "2. Add to bank")
+        self.win.refresh()
 
-    def print_target_player_dialog(
+    def draw_target_player_dialog(
         self, players: list[player.Player], exclude: player.Player | None = None
     ) -> None:
-        self.clear_hand()
-        self.hand_window.addstr(2, 2, "Choose a player to target:")
+        self.clear()
+        self.win.addstr(2, 2, "Choose a player to target:")
         idx = 0
         for p in players:
             if p == exclude:
                 continue
-            self.hand_window.addstr(3 + idx, 2, f"{idx + 1}. {p.name}")
+            self.win.addstr(3 + idx, 2, f"{idx + 1}. {p.name}")
             idx += 1
-        self.hand_window.refresh()
+        self.win.refresh()
 
-    def print_target_property_dialog(self, target: player.Player) -> None:
-        self.clear_hand()
-        self.hand_window.addstr(2, 2, f"Choose a property from {target.name}:")
+    def draw_target_property_dialog(self, target: player.Player) -> None:
+        self.clear()
+        self.win.addstr(2, 2, f"Choose a property from {target.name}:")
         idx = 0
         for _, properties in target.properties.items():
             for prop in properties.cards:
                 prop_name = (
                     f"{prop.name()} ({prop.colour().name}) (£{prop.value()})"
                 )
-                self.hand_window.addstr(3 + idx, 2, f"{idx + 1}. {prop_name}")
+                self.win.addstr(3 + idx, 2, f"{idx + 1}. {prop_name}")
                 idx += 1
-        self.hand_window.refresh()
+        self.win.refresh()
 
-    def print_rent_colour_choice(
+    def draw_rent_colour_choice(
         self, colours: list[tuple[cards.PropertyColour, int]]
     ) -> None:
-        self.clear_hand()
-        self.hand_window.addstr(2, 2, "Choose a colour to charge rent on:")
+        self.clear()
+        self.win.addstr(2, 2, "Choose a colour to charge rent on:")
         for idx, (colour, rent) in enumerate(colours):
-            self.hand_window.addstr(
+            self.win.addstr(
                 3 + idx, 2, f"{idx + 1}. {colour.pretty()} (£{rent})"
             )
-        self.hand_window.refresh()
+        self.win.refresh()
 
-    def game_over(self) -> None:
-        self.clear_hand()
-        self.hand_window.addstr(1, 2, "Game over!")
-        self.hand_window.addstr(2, 2, "Press Enter to close.")
-        self.hand_window.refresh()
+    def game_over(self, stdscr: curses.window) -> None:
+        self.clear()
+        self.win.addstr(1, 2, "Game over!")
+        self.win.addstr(2, 2, "Press Enter to close.")
+        self.win.refresh()
         while True:
-            key = self.stdscr.getch()
+            key = stdscr.getch()
             if key in (10, 13):  # Enter key
                 break
-
-    def log(self, message: str) -> None:
-        self.log_window.log(message)
-
-    def get_number_input(self, validation: Callable[[str], bool]) -> int:
-        while True:
-            key = self.stdscr.getkey()
-            if validation(key):
-                return int(key)
-            self.log("Invalid input, try again")
-
-    def clear(self):
-        self.stdscr.clear()
-
-    def addstr(self, y: int, x: int, string: str):
-        self.stdscr.addstr(y, x, string)
-
-    def refresh(self):
-        self.stdscr.refresh()
-
-    def getmaxyx(self) -> tuple[int, int]:
-        return self.stdscr.getmaxyx()
-
-    def getkey(self) -> str:
-        return self.stdscr.getkey()

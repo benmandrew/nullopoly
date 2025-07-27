@@ -3,8 +3,8 @@ import unittest
 import cards
 
 
-class TestPrintCardsSideBySide(unittest.TestCase):
-    def test_print_five_cards(self):
+class TestDrawCardsSideBySide(unittest.TestCase):
+    def test_draw_five_cards(self):
         deck = [
             cards.PropertyCard("Park Lane", 4, cards.PropertyColour.DARK_BLUE),
             cards.ActionCard("Deal Breaker", 5, cards.ActionType.DEAL_BREAKER),

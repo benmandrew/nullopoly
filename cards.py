@@ -137,50 +137,6 @@ class ActionCard(Card):
     def action(self) -> ActionType:
         return self._action
 
-    def colour_rent_wild(self, parts: list[str]) -> str:
-        # Rainbow colours for "Wild"
-        rainbow = [
-            "\033[31m",  # Red
-            "\033[33m",  # Yellow
-            "\033[32m",  # Green
-            "\033[36m",  # Cyan
-            "\033[34m",  # Blue
-            "\033[35m",  # Magenta
-        ]
-        wild_text = "Wild"
-        coloured_wild = (
-            "".join(
-                f"{rainbow[i % len(rainbow)]}{c}"
-                for i, c in enumerate(wild_text)
-            )
-            + RESET_COLOUR
-            + ACTION_COLOUR
-        )
-        return f"{parts[0]} {coloured_wild}"
-
-    def colour_rent_names(self, action_str: str) -> str:
-        # Example input: "Rent Brown Light Blue" or "Rent Wild"
-        parts = action_str.split()
-        assert len(parts) >= 2, "Rent string must have at least two parts"
-        if "Wild" in parts:
-            return self.colour_rent_wild(parts)
-        # Otherwise, colour property names as before
-        property_names = []
-        i = 1
-        while i < len(parts):
-            if i + 1 < len(parts):
-                two_word = f"{parts[i]} {parts[i + 1]}"
-                if two_word in {"Light Blue", "Dark Blue"}:
-                    property_names.append(two_word)
-                    i += 2
-                    continue
-            property_names.append(parts[i])
-            i += 1
-        coloured = "/".join(
-            colour_property_name(name) for name in property_names
-        )
-        return f"{parts[0]} {coloured}"
-
     def pretty(self) -> str:
         action_str = self._action.name.replace("_", " ").title()
         lines = [action_str, "", f"£{self._value}"]
@@ -225,43 +181,6 @@ class MoneyCard(Card):
         return f"Money(£{self._value})"
 
 
-# ANSI colour codes for property colours
-PROPERTY_COLOUR_CODES = {
-    PropertyColour.BROWN: "\033[38;5;94m",  # Dark brown
-    PropertyColour.LIGHT_BLUE: "\033[38;5;117m",  # Light blue
-    PropertyColour.PINK: "\033[38;5;205m",  # Pink
-    PropertyColour.ORANGE: "\033[38;5;208m",  # Orange
-    PropertyColour.RED: "\033[31m",  # Red
-    PropertyColour.YELLOW: "\033[33m",  # Yellow
-    PropertyColour.GREEN: "\033[32m",  # Green
-    PropertyColour.DARK_BLUE: "\033[34m",  # Blue
-    PropertyColour.RAILROAD: "\033[38;5;240m",  # Grey
-    PropertyColour.UTILITY: "\033[37m",  # White
-}
-
-ACTION_COLOUR = "\033[32m"  # Green for action cards
-MONEY_COLOUR = "\033[93m"  # Bright yellow for money cards
-RESET_COLOUR = "\033[0m"
-
-
-def colour_card_str(card: Card) -> str:
-    card_lines = str(card).split("\n")
-    if isinstance(card, PropertyCard):
-        colour_code = PROPERTY_COLOUR_CODES.get(card.colour())
-        return "\n".join(
-            f"{colour_code}{line}{RESET_COLOUR}" for line in card_lines
-        )
-    if isinstance(card, ActionCard):
-        return "\n".join(
-            f"{ACTION_COLOUR}{line}{RESET_COLOUR}" for line in card_lines
-        )
-    if isinstance(card, MoneyCard):
-        return "\n".join(
-            f"{MONEY_COLOUR}{line}{RESET_COLOUR}" for line in card_lines
-        )
-    return str(card)
-
-
 def fmt_cards_side_by_side(cards: list[Card]) -> list[str]:
     card_lines = [card.pretty().split("\n") for card in cards]
     for i, c in enumerate(card_lines):
@@ -279,22 +198,3 @@ def fmt_cards_side_by_side(cards: list[Card]) -> list[str]:
         "".join(card_lines[i][line_idx] for i in range(len(cards)))
         for line_idx in range(max_height)
     ]
-
-
-def colour_property_name(name: str) -> str:
-    name_map = {
-        "Brown": PropertyColour.BROWN,
-        "Light Blue": PropertyColour.LIGHT_BLUE,
-        "Pink": PropertyColour.PINK,
-        "Orange": PropertyColour.ORANGE,
-        "Red": PropertyColour.RED,
-        "Yellow": PropertyColour.YELLOW,
-        "Green": PropertyColour.GREEN,
-        "Dark Blue": PropertyColour.DARK_BLUE,
-        "Railroad": PropertyColour.RAILROAD,
-        "Utility": PropertyColour.UTILITY,
-    }
-    colour = name_map.get(name)
-    if colour:
-        return f"{RESET_COLOUR}{PROPERTY_COLOUR_CODES[colour]}{name}{RESET_COLOUR}{ACTION_COLOUR}"  # noqa: E501 pylint: disable=line-too-long
-    return name

@@ -259,5 +259,35 @@ class TestRentCards(unittest.TestCase):
         self.assertEqual(self.p3.total_bank_value(), 3)
 
 
+class TestGameWinCondition(unittest.TestCase):
+    def setUp(self):
+        self.mock_window = Mock()
+        self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
+        self.g.start()
+        self.p1 = self.g.get_player("P1")
+        self.p2 = self.g.get_player("P2")
+
+    def test_no_player_has_won(self):
+        self.assertFalse(self.g.check_win())
+
+    def test_player_has_won(self):
+        # Complete three sets for P1
+        for _ in range(2):
+            self.p1.add_property(
+                cards.PropertyCard("Brown", 1, cards.PropertyColour.BROWN)
+            )
+        for _ in range(3):
+            self.p1.add_property(
+                cards.PropertyCard("Red", 1, cards.PropertyColour.RED)
+            )
+        for _ in range(2):
+            self.p1.add_property(
+                cards.PropertyCard(
+                    "Dark Blue", 1, cards.PropertyColour.DARK_BLUE
+                )
+            )
+        self.assertTrue(self.g.check_win())
+
+
 if __name__ == "__main__":
     unittest.main()

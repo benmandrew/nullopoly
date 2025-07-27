@@ -17,8 +17,8 @@ def game_loop(g: game.Game) -> game.Game:
     g.deal_to_player(current_player, 2)
     n_cards_played = 0
     while n_cards_played < 3:
-        g.win.print_game_state(g.players)
-        g.win.print_hand(
+        g.win.table.draw(g.players)
+        g.win.hand.draw(
             current_player,
             len(current_player.hand),
             n_cards_played,
@@ -38,9 +38,7 @@ def game_loop(g: game.Game) -> game.Game:
     return g
 
 
-def curses_main(stdscr: curses.window) -> None:
-    curses.start_color()
-    curses.curs_set(0)  # Hide the cursor
+def run_game(stdscr: curses.window) -> game.Game:
     players = ["Alice", "Bob"]
     win = window.Window(stdscr, n_players=len(players))
     g = game.Game(players, deck="deck.json", win=win)
@@ -52,6 +50,13 @@ def curses_main(stdscr: curses.window) -> None:
             break
         g.end_turn()
     g.win.game_over()
+    return g
+
+
+def curses_main(stdscr: curses.window) -> None:
+    curses.start_color()
+    curses.curs_set(0)  # Hide the cursor
+    run_game(stdscr)
     curses.endwin()
 
 
