@@ -38,8 +38,16 @@ def game_loop(g: game.Game) -> game.Game:
     return g
 
 
+def detect_resize(win: window.Window) -> None:
+    key = win.getkey()
+    if key == curses.KEY_RESIZE:
+        new_y, new_x = win.getmaxyx()
+        curses.resize_term(new_y, new_x)
+        win.resize()
+
+
 def run_game(stdscr: curses.window) -> game.Game:
-    players = ["Alice", "Bob"]
+    players = ["Alice", "Bob", "Charlie"]
     win = window.Window(stdscr, n_players=len(players))
     g = game.Game(players, deck="deck.json", win=win)
     g.start()
@@ -49,6 +57,7 @@ def run_game(stdscr: curses.window) -> game.Game:
         except WonError:
             break
         g.end_turn()
+        # detect_resize(g.win)
     g.win.game_over()
     return g
 

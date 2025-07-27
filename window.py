@@ -61,17 +61,30 @@ class Window:
         self.stdscr = stdscr
         height, width = self.stdscr.getmaxyx()
         half_height = height // 2
-        log_height = 3
+        self.log_height = 3
         self.log = LogWindow(
-            self.stdscr, log_height, width, half_height - log_height, 0
+            self.stdscr,
+            self.log_height,
+            width,
+            half_height - self.log_height,
+            0,
         )
         self.hand = Hand(
             self.stdscr, height - half_height, width, half_height, 0
         )
         self.table = Table(
-            self.stdscr, n_players, half_height - log_height, width
+            self.stdscr, n_players, half_height - self.log_height, width
         )
         self.init_colours()
+
+    def resize(self) -> None:
+        height, width = self.stdscr.getmaxyx()
+        half_height = height // 2
+        self.log.win.resize(self.log_height, width)
+        self.log.win.mvwin(half_height - self.log_height, 0)
+        self.hand.win.resize(height - half_height, width)
+        self.hand.win.mvwin(half_height, 0)
+        self.table.resize(half_height - self.log_height, width)
 
     def init_colours(self) -> None:
         assert curses.has_colors(), "Terminal does not support colours"
@@ -122,12 +135,18 @@ class Table:
     def __init__(
         self, stdscr: curses.window, n_players: int, height: int, width: int
     ):
-        self.table_windows = []
+        self.table_windows: list[curses.window] = []
         for i in range(n_players):
             table_width = width // n_players
             self.table_windows.append(
                 stdscr.subwin(height, table_width, 0, table_width * i)
             )
+
+    def resize(self, height: int, width: int) -> None:
+        table_width = width // len(self.table_windows)
+        for i, t in enumerate(self.table_windows):
+            t.resize(height, table_width)
+            t.mvwin(0, table_width * i)
 
     def clear(self, win: curses.window) -> None:
         win.clear()
@@ -172,7 +191,7 @@ class Table:
             colour.pretty(),
             completed | curses.color_pair(COLOUR_MAP[colour]),
         )
-        win.addstr(idx + 3, 19, cards_str, completed)
+        win.addstr(idx + 3, 15, cards_str, completed)
 
 
 class Hand:
@@ -233,9 +252,7 @@ class Hand:
         idx = 0
         for _, properties in target.properties.items():
             for prop in properties.cards:
-                prop_name = (
-                    f"{prop.name()} ({prop.colour().name}) (£{prop.value()})"
-                )
+                prop_name = f"{prop.name()} ({prop.colour().pretty()}) (£{prop.value()})"  # noqa: E501 pylint: disable=line-too-long
                 self.win.addstr(3 + idx, 2, f"{idx + 1}. {prop_name}")
                 idx += 1
         self.win.refresh()
