@@ -30,7 +30,6 @@ class Game:
         self.win = win
         self.current_player_index: int = 0
         self.current_turn: int = 0
-        self.game_over: bool = False
         self.discard_pile: list[cards.Card] = []
 
     def start(self) -> None:
@@ -58,6 +57,7 @@ class Game:
     def end_turn(self) -> None:
         self.current_turn += 1
         self.next_player()
+        self.win.turn_over(self.current_player().name)
 
     def get_player(self, name: str) -> player.Player | None:
         for p in self.players:
@@ -88,7 +88,8 @@ class Game:
         colour_options = cards.RENT_CARD_COLOURS[action_type]
         owned_colours_with_rents = []
         for c in colour_options:
-            owned_colours_with_rents.append((c, p.properties[c].rent()))
+            if p.properties[c].cards:
+                owned_colours_with_rents.append((c, p.properties[c].rent()))
         if not owned_colours_with_rents:
             self.win.draw_log(
                 "You do not own any properties of the required colours"

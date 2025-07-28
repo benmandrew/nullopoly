@@ -102,6 +102,9 @@ class Window:
         curses.init_pair(9, curses.COLOR_BLACK, curses.COLOR_WHITE)
         curses.init_pair(10, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
+    def turn_over(self, next_player_name: str) -> None:
+        self.hand.turn_over(self.stdscr, next_player_name)
+
     def game_over(self) -> None:
         self.hand.game_over(self.stdscr)
 
@@ -267,6 +270,16 @@ class Hand:
                 3 + idx, 2, f"{idx + 1}. {colour.pretty()} (£{rent})"
             )
         self.win.refresh()
+
+    def turn_over(self, stdscr: curses.window, next_player_name: str) -> None:
+        self.clear()
+        self.win.addstr(2, 2, f"Next player: {next_player_name}", curses.A_BOLD)
+        self.win.addstr(3, 2, "Press Enter to start turn.")
+        self.win.refresh()
+        while True:
+            key = stdscr.getch()
+            if key in (10, 13):
+                break
 
     def game_over(self, stdscr: curses.window) -> None:
         self.clear()
