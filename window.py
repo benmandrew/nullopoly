@@ -1,5 +1,8 @@
 import curses
+import queue
+import threading
 from collections.abc import Callable
+from dataclasses import dataclass
 
 import cards
 import player
@@ -17,41 +20,71 @@ def int_range_validator(v_min: int, v_max: int) -> Callable[[str], bool]:
     return validator
 
 
+def is_enter_key(key: str) -> bool:
+    """
+    Returns True if the key is an Enter key (either '\n' or '\r').
+    """
+    return key in ("\n", "\r", chr(10), chr(13))
+
+
+def init_colours() -> None:
+    assert curses.has_colors(), "Terminal does not support colours"
+    curses.init_pair(
+        COLOUR_MAP[cards.PropertyColour.BROWN],
+        curses.COLOR_WHITE,
+        curses.COLOR_BLACK,
+    )
+    curses.init_pair(
+        COLOUR_MAP[cards.PropertyColour.LIGHT_BLUE],
+        curses.COLOR_CYAN,
+        curses.COLOR_BLACK,
+    )
+    curses.init_pair(
+        COLOUR_MAP[cards.PropertyColour.PINK],
+        curses.COLOR_MAGENTA,
+        curses.COLOR_BLACK,
+    )
+    curses.init_pair(
+        COLOUR_MAP[cards.PropertyColour.ORANGE],
+        curses.COLOR_WHITE,
+        curses.COLOR_BLACK,
+    )
+    curses.init_pair(
+        COLOUR_MAP[cards.PropertyColour.RED],
+        curses.COLOR_RED,
+        curses.COLOR_BLACK,
+    )
+    curses.init_pair(
+        COLOUR_MAP[cards.PropertyColour.YELLOW],
+        curses.COLOR_YELLOW,
+        curses.COLOR_BLACK,
+    )
+    curses.init_pair(
+        COLOUR_MAP[cards.PropertyColour.GREEN],
+        curses.COLOR_GREEN,
+        curses.COLOR_BLACK,
+    )
+    curses.init_pair(
+        COLOUR_MAP[cards.PropertyColour.DARK_BLUE],
+        curses.COLOR_BLUE,
+        curses.COLOR_BLACK,
+    )
+    curses.init_pair(
+        COLOUR_MAP[cards.PropertyColour.RAILROAD],
+        curses.COLOR_BLACK,
+        curses.COLOR_WHITE,
+    )
+    curses.init_pair(
+        COLOUR_MAP[cards.PropertyColour.UTILITY],
+        curses.COLOR_BLACK,
+        curses.COLOR_YELLOW,
+    )
+
+
 class InvalidChoiceError(Exception):
     """
     Raised when the option taken is invalid.
     """
-
-
-class LogWindow:
-    def __init__(
-        self,
-        stdscr: curses.window,
-        n_lines: int,
-        n_cols: int,
-        begin_y: int,
-        begin_x: int,
-    ):
-        self.win = stdscr.subwin(n_lines, n_cols, begin_y, begin_x)
-        self.log_lines: list[str] = []
-        self.log_idx = 0
-
-    def log(self, message: str) -> None:
-        self.win.clear()
-        if len(self.log_lines) >= 3:
-            self.log_lines.pop()
-        self.log_lines.append(message)
-        self.log_idx += 1
-        for i, line in enumerate(self.log_lines):
-            s = f"{self.log_idx - len(self.log_lines) + i + 1}."
-            self.win.addstr(i, 2, f"{s:<4} {line}")
-        self.win.refresh()
-
-    def clear(self) -> None:
-        self.win.clear()
-        self.log_lines = []
-        self.log_idx = 0
-        self.win.refresh()
 
 
 COLOUR_MAP = {
@@ -68,67 +101,101 @@ COLOUR_MAP = {
 }
 
 
+@dataclass(frozen=True)
+class RedrawData:
+    current_player: player.Player
+    players: list[player.Player]
+    n_cards_played: int
+
+
 class Window:
+
     def __init__(self, stdscr: curses.window, n_players: int):
         self.stdscr = stdscr
-        height, width = self.stdscr.getmaxyx()
+        self.stdscr.nodelay(True)
+        self.stdscr.keypad(True)
+        self.n_players = n_players
+        self.redraw_data: RedrawData | None = None
+        self.create_windows()
+        init_colours()
+        self.input_queue: queue.Queue[str] = queue.Queue()
+        threading.Thread(target=self.input_thread, daemon=True).start()
+
+    def create_windows(self) -> None:
+        height, width = self.getmaxyx()
         half_height = height // 2
-        self.log_height = 3
-        self.log = LogWindow(
+        self.log = Log(
             self.stdscr,
-            self.log_height,
+            Log.LOG_HEIGHT,
             width,
-            half_height - self.log_height,
+            half_height - Log.LOG_HEIGHT,
             0,
         )
         self.hand = Hand(
             self.stdscr, height - half_height, width, half_height, 0
         )
         self.table = Table(
-            self.stdscr, n_players, half_height - self.log_height, width
+            self.stdscr, self.n_players, half_height - Log.LOG_HEIGHT, width
         )
-        self.init_colours()
 
-    def resize(self) -> None:
-        height, width = self.stdscr.getmaxyx()
-        half_height = height // 2
-        self.log.win.resize(self.log_height, width)
-        self.log.win.mvwin(half_height - self.log_height, 0)
-        self.hand.win.resize(height - half_height, width)
-        self.hand.win.mvwin(half_height, 0)
-        self.table.resize(half_height - self.log_height, width)
+    def draw(
+        self,
+        current_player: player.Player,
+        players: list[player.Player],
+        n_cards_played: int,
+    ) -> None:
+        self.redraw_data = RedrawData(
+            current_player=current_player,
+            players=players,
+            n_cards_played=n_cards_played,
+        )
+        self.table.draw(players)
+        self.log.draw()
+        self.hand.draw(
+            current_player,
+            len(current_player.hand),
+            n_cards_played,
+        )
 
-    def init_colours(self) -> None:
-        assert curses.has_colors(), "Terminal does not support colours"
-        assert (
-            curses.can_change_color()
-        ), "Terminal does not support changing colours"
-        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
-        curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
-        curses.init_pair(3, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-        curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLACK)
-        curses.init_pair(5, curses.COLOR_RED, curses.COLOR_BLACK)
-        curses.init_pair(6, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-        curses.init_pair(7, curses.COLOR_GREEN, curses.COLOR_BLACK)
-        curses.init_pair(8, curses.COLOR_BLUE, curses.COLOR_BLACK)
-        curses.init_pair(9, curses.COLOR_BLACK, curses.COLOR_WHITE)
-        curses.init_pair(10, curses.COLOR_BLACK, curses.COLOR_YELLOW)
-
-    def turn_over(self, next_player_name: str) -> None:
-        self.hand.turn_over(self.stdscr, next_player_name)
-
-    def game_over(self) -> None:
-        self.hand.game_over(self.stdscr)
-
-    def draw_log(self, message: str) -> None:
-        self.log.log(message)
+    def input_thread(self) -> None:
+        while True:
+            try:
+                key = self.stdscr.getch()
+                if key == -1:
+                    continue
+                if key == curses.KEY_RESIZE:
+                    self.resize()
+                else:
+                    self.input_queue.put(chr(key))
+            except curses.error:
+                continue
 
     def get_number_input(self, v_min: int, v_max: int) -> int:
         while True:
-            key = self.stdscr.getkey()
+            key = self.input_queue.get()
             if int_range_validator(v_min, v_max)(key):
                 return int(key)
             self.log.log("Invalid input, try again")
+
+    def resize(self) -> None:
+        assert (
+            self.redraw_data is not None
+        ), "Redraw data must be set before resizing"
+        self.create_windows()
+        self.draw(
+            self.redraw_data.current_player,
+            self.redraw_data.players,
+            self.redraw_data.n_cards_played,
+        )
+
+    def turn_over(self, next_player_name: str) -> None:
+        self.hand.turn_over(self.input_queue, next_player_name)
+
+    def game_over(self) -> None:
+        self.hand.game_over(self.input_queue)
+
+    def draw_log(self, message: str) -> None:
+        self.log.log(message)
 
     def clear(self):
         self.stdscr.clear()
@@ -141,9 +208,6 @@ class Window:
 
     def getmaxyx(self) -> tuple[int, int]:
         return self.stdscr.getmaxyx()
-
-    def getkey(self) -> str:
-        return self.stdscr.getkey()
 
 
 class Table:
@@ -301,22 +365,61 @@ class Hand:
             )
         self.win.refresh()
 
-    def turn_over(self, stdscr: curses.window, next_player_name: str) -> None:
+    def turn_over(
+        self, input_queue: queue.Queue, next_player_name: str
+    ) -> None:
         self.clear()
         self.win.addstr(2, 2, f"Next player: {next_player_name}", curses.A_BOLD)
         self.win.addstr(3, 2, "Press Enter to start turn.")
         self.win.refresh()
         while True:
-            key = stdscr.getch()
-            if key in (10, 13):
+            key = input_queue.get()
+            if is_enter_key(key):
                 break
 
-    def game_over(self, stdscr: curses.window) -> None:
+    def game_over(self, input_queue: queue.Queue) -> None:
         self.clear()
         self.win.addstr(1, 2, "Game over!")
         self.win.addstr(2, 2, "Press Enter to close.")
         self.win.refresh()
         while True:
-            key = stdscr.getch()
-            if key in (10, 13):  # Enter key
+            key = input_queue.get()
+            if is_enter_key(key):
                 break
+
+
+class Log:
+
+    LOG_HEIGHT = 3
+
+    def __init__(
+        self,
+        stdscr: curses.window,
+        n_lines: int,
+        n_cols: int,
+        begin_y: int,
+        begin_x: int,
+    ):
+        self.win = stdscr.subwin(n_lines, n_cols, begin_y, begin_x)
+        self.log_lines: list[str] = []
+        self.log_idx = 0
+
+    def log(self, message: str) -> None:
+        if len(self.log_lines) >= 3:
+            self.log_lines.pop()
+        self.log_lines.append(message)
+        self.log_idx += 1
+        self.draw()
+
+    def draw(self) -> None:
+        self.win.clear()
+        for i, line in enumerate(self.log_lines):
+            s = f"{self.log_idx - len(self.log_lines) + i + 1}."
+            self.win.addstr(i, 2, f"{s:<4} {line}")
+        self.win.refresh()
+
+    def clear(self) -> None:
+        self.win.clear()
+        self.log_lines = []
+        self.log_idx = 0
+        self.win.refresh()

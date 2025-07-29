@@ -68,12 +68,7 @@ class Game:
         """
         Draw the current game state.
         """
-        self.win.table.draw(self.players)
-        self.win.hand.draw(
-            self.current_player(),
-            len(self.current_player().hand),
-            n_cards_played,
-        )
+        self.win.draw(self.current_player(), self.players, n_cards_played)
 
     def draw_card(self) -> cards.Card:
         """Draw a card from the deck."""
