@@ -1,4 +1,5 @@
 import unittest
+from typing import cast
 from unittest.mock import Mock, patch
 
 import utils
@@ -9,7 +10,7 @@ from window import common
 
 
 class TestActionCards(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.mock_window = Mock()
         self.g = game.Game(
             ["P1", "P2", "P3"], [], self.mock_window, starting_cards=0
@@ -19,7 +20,7 @@ class TestActionCards(unittest.TestCase):
         self.p2 = self.g.get_player("P2")
         self.p3 = self.g.get_player("P3")
 
-    def test_debt_collector(self):
+    def test_debt_collector(self) -> None:
         action_card = cards.ActionCard(
             "Debt Collector", 3, cards.ActionType.DEBT_COLLECTOR
         )
@@ -33,7 +34,7 @@ class TestActionCards(unittest.TestCase):
         self.assertEqual(self.p1.total_bank_value(), 6)
         self.assertEqual(self.p2.total_bank_value(), 1)
 
-    def test_birthday(self):
+    def test_birthday(self) -> None:
         action_card = cards.ActionCard(
             "Birthday", 2, cards.ActionType.ITS_MY_BIRTHDAY
         )
@@ -50,8 +51,11 @@ class TestActionCards(unittest.TestCase):
             self.g.play_action_card(action_card, self.p1)
             self.assertEqual(self.p2.total_bank_value(), 1)
             self.assertEqual(self.p3.total_bank_value(), 0)
+            properties: list[cards.Card] = cast(
+                list[cards.Card], self.p1.properties_to_list()
+            )
             result = utils.strip_and_join(
-                cards.fmt_cards_side_by_side(self.p1.properties_to_list())
+                cards.fmt_cards_side_by_side(properties)
             )
             self.assertMultiLineEqual(
                 result,
@@ -67,7 +71,7 @@ class TestActionCards(unittest.TestCase):
                 ),
             )
 
-    def test_pass_go(self):
+    def test_pass_go(self) -> None:
         self.g.deck.extend([cards.MoneyCard(1), cards.MoneyCard(2)])
         action_card = cards.ActionCard("Pass Go", 1, cards.ActionType.PASS_GO)
         self.p1.add_to_hand(
@@ -78,7 +82,7 @@ class TestActionCards(unittest.TestCase):
 
 
 class TestRentCards(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.mock_window = Mock()
         self.g = game.Game(
             ["P1", "P2", "P3"], [], self.mock_window, starting_cards=0
@@ -103,7 +107,7 @@ class TestRentCards(unittest.TestCase):
         self.p3.add_to_bank(cards.MoneyCard(1))
         self.p3.add_to_bank(cards.MoneyCard(2))
 
-    def test_rent_brown_light_blue_brown(self):
+    def test_rent_brown_light_blue_brown(self) -> None:
         rent_card = cards.ActionCard(
             "Rent Brown/Light Blue", 1, cards.ActionType.RENT_BROWN_LIGHT_BLUE
         )
@@ -115,11 +119,10 @@ class TestRentCards(unittest.TestCase):
         self.assertEqual(self.p2.total_bank_value(), 2)
         self.assertEqual(self.p3.total_bank_value(), 2)
 
-    def test_rent_brown_light_blue_light_blue(self):
+    def test_rent_brown_light_blue_light_blue(self) -> None:
         rent_card = cards.ActionCard(
             "Rent Brown/Light Blue", 1, cards.ActionType.RENT_BROWN_LIGHT_BLUE
         )
-        # Patch rent colour choice to select LIGHT_BLUE (index 2)
         with patch.object(self.g.win, "get_number_input", return_value=2):
             self.g.play_rent_card(rent_card, self.p1)
         # Light Blue rent for 2 properties is 2
@@ -127,8 +130,7 @@ class TestRentCards(unittest.TestCase):
         self.assertEqual(self.p2.total_bank_value(), 1)
         self.assertEqual(self.p3.total_bank_value(), 1)
 
-    def test_rent_green_dark_blue(self):
-        # Give P1 a dark blue property
+    def test_rent_green_dark_blue(self) -> None:
         self.p1.add_property(
             cards.PropertyCard("DarkBlue1", 1, cards.PropertyColour.DARK_BLUE)
         )
@@ -136,7 +138,6 @@ class TestRentCards(unittest.TestCase):
         rent_card = cards.ActionCard(
             "Rent Green/Dark Blue", 1, cards.ActionType.RENT_GREEN_DARK_BLUE
         )
-        # Patch rent colour choice to select DARK BLUE (index 1)
         with patch.object(self.g.win, "get_number_input", return_value=2):
             self.g.play_rent_card(rent_card, self.p1)
         # Dark Blue rent for 1 property is 3
@@ -144,8 +145,7 @@ class TestRentCards(unittest.TestCase):
         self.assertEqual(self.p2.total_bank_value(), 2)
         self.assertEqual(self.p3.total_bank_value(), 0)
 
-    def test_rent_wild(self):
-        # Give P1 a green property
+    def test_rent_wild(self) -> None:
         self.p1.add_property(
             cards.PropertyCard("Green1", 1, cards.PropertyColour.GREEN)
         )
@@ -160,7 +160,7 @@ class TestRentCards(unittest.TestCase):
 
 
 class TestDealBreaker(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.mock_window = Mock()
         self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
         self.g.start()
@@ -175,7 +175,7 @@ class TestDealBreaker(unittest.TestCase):
                 cards.PropertyCard("Yellow", 1, cards.PropertyColour.YELLOW)
             )
 
-    def test_deal_breaker(self):
+    def test_deal_breaker(self) -> None:
         with patch.object(
             self.g, "choose_player_target", return_value=self.p2
         ), patch.object(
@@ -217,7 +217,7 @@ class TestDealBreaker(unittest.TestCase):
             len(self.p2.properties[cards.PropertyColour.YELLOW].cards), 3
         )
 
-    def test_forced_deal_no_properties(self):
+    def test_forced_deal_no_properties(self) -> None:
         self.p2.properties = self.p2.empty_property_sets()
         with patch.object(
             self.g, "choose_player_target", return_value=self.p2
@@ -226,7 +226,7 @@ class TestDealBreaker(unittest.TestCase):
 
 
 class TestSlyDeal(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.mock_window = Mock()
         self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
         self.g.start()
@@ -236,7 +236,7 @@ class TestSlyDeal(unittest.TestCase):
             cards.PropertyCard("Red", 1, cards.PropertyColour.RED)
         )
 
-    def test_sly_deal(self):
+    def test_sly_deal(self) -> None:
         with patch.object(
             self.g, "choose_player_target", return_value=self.p2
         ), patch.object(
@@ -252,7 +252,7 @@ class TestSlyDeal(unittest.TestCase):
             len(self.p2.properties[cards.PropertyColour.RED].cards), 0
         )
 
-    def test_forced_deal_no_properties(self):
+    def test_forced_deal_no_properties(self) -> None:
         self.p2.properties = self.p2.empty_property_sets()
         with patch.object(
             self.g, "choose_player_target", return_value=self.p2
@@ -261,7 +261,7 @@ class TestSlyDeal(unittest.TestCase):
 
 
 class TestForcedDeal(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.mock_window = Mock()
         self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
         self.g.start()
@@ -274,7 +274,7 @@ class TestForcedDeal(unittest.TestCase):
             cards.PropertyCard("Yellow", 1, cards.PropertyColour.YELLOW)
         )
 
-    def test_forced_deal(self):
+    def test_forced_deal(self) -> None:
         with patch.object(
             self.g, "choose_player_target", return_value=self.p2
         ), patch.object(
@@ -299,14 +299,14 @@ class TestForcedDeal(unittest.TestCase):
             len(self.p1.properties[cards.PropertyColour.YELLOW].cards), 1
         )
 
-    def test_forced_deal_target_no_properties(self):
+    def test_forced_deal_target_no_properties(self) -> None:
         self.p2.properties = self.p2.empty_property_sets()
         with patch.object(
             self.g, "choose_player_target", return_value=self.p2
         ), self.assertRaises(common.InvalidChoiceError):
             self.g.play_forced_deal(self.p1)
 
-    def test_forced_deal_source_no_properties(self):
+    def test_forced_deal_source_no_properties(self) -> None:
         self.p1.properties = self.p1.empty_property_sets()
         with self.assertRaises(common.InvalidChoiceError):
             self.g.play_forced_deal(self.p1)

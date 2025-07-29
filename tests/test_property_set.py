@@ -5,7 +5,7 @@ import player
 
 
 class TestPropertySet(unittest.TestCase):
-    def test_add_and_remove(self):
+    def test_add_and_remove(self) -> None:
         prop_set = player.PropertySet(cards.PropertyColour.BROWN, 2)
         prop_card = cards.PropertyCard(
             "Old Kent Road", 1, cards.PropertyColour.BROWN
@@ -15,7 +15,7 @@ class TestPropertySet(unittest.TestCase):
         prop_set.remove(prop_card)
         self.assertEqual(prop_set.count(), 0)
 
-    def test_is_complete(self):
+    def test_is_complete(self) -> None:
         prop_set = player.PropertySet(cards.PropertyColour.BROWN, 2)
         prop_card1 = cards.PropertyCard(
             "Old Kent Road", 1, cards.PropertyColour.BROWN

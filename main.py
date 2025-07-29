@@ -1,9 +1,10 @@
 import curses
 import signal
 import sys
+from types import FrameType
 
 import game
-from window import window
+from window import common, window
 
 
 class WonError(Exception):
@@ -21,7 +22,7 @@ def game_loop(g: game.Game) -> game.Game:
         try:
             c = g.get_card_choice(current_player)
             g.play_card(c, current_player)
-        except window.common.InvalidChoiceError:
+        except common.InvalidChoiceError:
             continue
         n_cards_played += 1
         current_player.remove_card_from_hand(c)
@@ -55,7 +56,7 @@ def curses_main(stdscr: curses.window) -> None:
     curses.endwin()
 
 
-def signal_handler(_sig, _frame):
+def signal_handler(_sig: int, _frame: FrameType | None) -> None:
     curses.endwin()
     sys.exit(0)
 

@@ -1,9 +1,10 @@
 import json
+from typing import Any
 
 import cards
 
 
-def parse_action_card(card_data: dict, idx: int) -> cards.ActionCard:
+def parse_action_card(card_data: dict[str, Any], idx: int) -> cards.ActionCard:
     for field in ["name", "value", "action"]:
         if field not in card_data:
             raise ValueError(
@@ -22,7 +23,9 @@ def parse_action_card(card_data: dict, idx: int) -> cards.ActionCard:
     )
 
 
-def parse_property_card(card_data: dict, idx: int) -> cards.PropertyCard:
+def parse_property_card(
+    card_data: dict[str, Any], idx: int
+) -> cards.PropertyCard:
     for field in ["name", "value", "colour"]:
         if field not in card_data:
             raise ValueError(
@@ -41,7 +44,7 @@ def parse_property_card(card_data: dict, idx: int) -> cards.PropertyCard:
     )
 
 
-def parse_money_card(card_data: dict, idx: int) -> cards.MoneyCard:
+def parse_money_card(card_data: dict[str, Any], idx: int) -> cards.MoneyCard:
     if "value" not in card_data:
         raise ValueError(f"Missing 'value' in money card at index {idx}.")
     return cards.MoneyCard(card_data["value"])

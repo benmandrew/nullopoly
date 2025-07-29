@@ -200,7 +200,7 @@ class Hand:
         self.win.refresh()
 
     def draw_target_property_dialog(
-        self, target: player.Player, without_full_sets=False
+        self, target: player.Player, without_full_sets: bool = False
     ) -> None:
         self.clear()
         self.win.addstr(2, 2, f"Choose a property from {target.name}:")
@@ -240,7 +240,7 @@ class Hand:
         self.win.refresh()
 
     def turn_over(
-        self, input_queue: queue.Queue, next_player_name: str
+        self, input_queue: queue.Queue[str], next_player_name: str
     ) -> None:
         self.clear()
         self.win.addstr(2, 2, f"Next player: {next_player_name}", curses.A_BOLD)
@@ -251,7 +251,7 @@ class Hand:
             if common.is_enter_key(key):
                 break
 
-    def game_over(self, input_queue: queue.Queue) -> None:
+    def game_over(self, input_queue: queue.Queue[str]) -> None:
         self.clear()
         self.win.addstr(1, 2, "Game over!")
         self.win.addstr(2, 2, "Press Enter to close.")

@@ -77,7 +77,7 @@ class Player:
         return sum(card.value for card in self.bank)
 
     def properties_to_list(
-        self, without_full_sets=False
+        self, without_full_sets: bool = False
     ) -> list[cards.PropertyCard]:
         result = []
         for property_set in self.properties.values():

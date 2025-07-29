@@ -5,17 +5,17 @@ import player
 
 
 class TestChargeMoneyPayment(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.p = player.Player("Test")
 
-    def test_exact_payment(self):
+    def test_exact_payment(self) -> None:
         self.p.add_to_bank(cards.MoneyCard(5))
         paid, remaining = self.p.charge_money_payment(5)
         self.assertEqual(sum(c.value for c in paid), 5)
         self.assertEqual(remaining, 0)
         self.assertEqual(len(self.p.bank), 0)
 
-    def test_overpayment_minimized(self):
+    def test_overpayment_minimized(self) -> None:
         self.p.add_to_bank(cards.MoneyCard(2))
         self.p.add_to_bank(cards.MoneyCard(3))
         self.p.add_to_bank(cards.MoneyCard(5))
@@ -25,7 +25,7 @@ class TestChargeMoneyPayment(unittest.TestCase):
         self.assertEqual(remaining, 0)
         self.assertEqual(len(self.p.bank), 2)
 
-    def test_multiple_cards(self):
+    def test_multiple_cards(self) -> None:
         self.p.add_to_bank(cards.MoneyCard(1))
         self.p.add_to_bank(cards.MoneyCard(2))
         self.p.add_to_bank(cards.MoneyCard(2))
@@ -34,7 +34,7 @@ class TestChargeMoneyPayment(unittest.TestCase):
         self.assertEqual(remaining, 0)
         self.assertEqual(len(self.p.bank), 1)
 
-    def test_insufficient_funds(self):
+    def test_insufficient_funds(self) -> None:
         self.p.add_to_bank(cards.MoneyCard(2))
         self.p.add_to_bank(cards.MoneyCard(1))
         paid, remaining = self.p.charge_money_payment(10)
@@ -42,7 +42,7 @@ class TestChargeMoneyPayment(unittest.TestCase):
         self.assertEqual(remaining, 7)
         self.assertEqual(len(self.p.bank), 0)
 
-    def test_action_card_in_bank(self):
+    def test_action_card_in_bank(self) -> None:
         self.p.add_to_bank(cards.MoneyCard(2))
         self.p.add_to_bank(cards.ActionCard("A", 3, cards.ActionType.PASS_GO))
         paid, remaining = self.p.charge_money_payment(3)

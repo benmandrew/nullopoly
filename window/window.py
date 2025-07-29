@@ -103,13 +103,13 @@ class Window:
     def draw_log(self, message: str) -> None:
         self.log.log(message)
 
-    def clear(self):
+    def clear(self) -> None:
         self.stdscr.clear()
 
-    def addstr(self, y: int, x: int, string: str):
+    def addstr(self, y: int, x: int, string: str) -> None:
         self.stdscr.addstr(y, x, string)
 
-    def refresh(self):
+    def refresh(self) -> None:
         self.stdscr.refresh()
 
     def getmaxyx(self) -> tuple[int, int]:

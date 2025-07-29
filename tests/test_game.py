@@ -8,9 +8,9 @@ import game
 
 
 class TestGameStart(unittest.TestCase):
-    def test_players_start_with_five_cards(self):
+    def test_players_start_with_five_cards(self) -> None:
         mock_window = Mock()
-        deck = [cards.MoneyCard(1) for _ in range(15)]
+        deck: list[cards.Card] = [cards.MoneyCard(1) for _ in range(15)]
         g = game.Game(["Alice", "Bob", "Charlie"], deck, mock_window)
         g.start()
         for player in g.players:
@@ -18,7 +18,7 @@ class TestGameStart(unittest.TestCase):
 
 
 class TestPayments(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         mock_window = Mock()
         self.g = game.Game(["TestPlayer"], [], mock_window, starting_cards=0)
         self.g.start()
@@ -34,7 +34,7 @@ class TestPayments(unittest.TestCase):
             cards.PropertyCard("Property2", 2, cards.PropertyColour.RED)
         )
 
-    def test_get_payment_1(self):
+    def test_get_payment_1(self) -> None:
         with patch.object(self.g.win, "get_number_input", side_effect=[]):
             money, properties = self.g.get_payment(self.player, 5)
             charged_cards = utils.strip_and_join(
@@ -56,7 +56,7 @@ class TestPayments(unittest.TestCase):
             self.assertEqual(self.player.total_bank_value(), 3)
             self.assertEqual(len(self.player.properties_to_list()), 2)
 
-    def test_get_payment_2(self):
+    def test_get_payment_2(self) -> None:
         with patch.object(self.g.win, "get_number_input", side_effect=[1]):
             money, properties = self.g.get_payment(self.player, 10)
             charged_cards = utils.strip_and_join(
@@ -78,7 +78,7 @@ class TestPayments(unittest.TestCase):
             self.assertEqual(self.player.total_bank_value(), 0)
             self.assertEqual(len(self.player.properties_to_list()), 1)
 
-    def test_get_payment_3(self):
+    def test_get_payment_3(self) -> None:
         with patch.object(self.g.win, "get_number_input", side_effect=[1, 1]):
             money, properties = self.g.get_payment(self.player, 20)
             charged_cards = utils.strip_and_join(
@@ -102,17 +102,17 @@ class TestPayments(unittest.TestCase):
 
 
 class TestGameWinCondition(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.mock_window = Mock()
         self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
         self.g.start()
         self.p1 = self.g.get_player("P1")
         self.p2 = self.g.get_player("P2")
 
-    def test_no_player_has_won(self):
+    def test_no_player_has_won(self) -> None:
         self.assertFalse(self.g.check_win())
 
-    def test_player_has_won(self):
+    def test_player_has_won(self) -> None:
         # Complete three sets for P1
         for _ in range(2):
             self.p1.add_property(
