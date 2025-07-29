@@ -289,5 +289,158 @@ class TestGameWinCondition(unittest.TestCase):
         self.assertTrue(self.g.check_win())
 
 
+class TestDealBreaker(unittest.TestCase):
+    def setUp(self):
+        self.mock_window = Mock()
+        self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
+        self.g.start()
+        self.p1 = self.g.get_player("P1")
+        self.p2 = self.g.get_player("P2")
+        for _ in range(2):
+            self.p2.add_property(
+                cards.PropertyCard("Brown", 1, cards.PropertyColour.BROWN)
+            )
+        for _ in range(3):
+            self.p2.add_property(
+                cards.PropertyCard("Yellow", 1, cards.PropertyColour.YELLOW)
+            )
+
+    def test_deal_breaker(self):
+        with patch.object(
+            self.g, "choose_player_target", return_value=self.p2
+        ), patch.object(
+            self.g,
+            "choose_full_set_target",
+            return_value=self.p2.properties[cards.PropertyColour.BROWN],
+        ):
+            self.g.play_deal_breaker(self.p1)
+        self.assertEqual(
+            len(self.p1.properties[cards.PropertyColour.BROWN].cards), 2
+        )
+        self.assertEqual(
+            len(self.p2.properties[cards.PropertyColour.BROWN].cards), 0
+        )
+        self.assertEqual(
+            len(self.p1.properties[cards.PropertyColour.YELLOW].cards), 0
+        )
+        self.assertEqual(
+            len(self.p2.properties[cards.PropertyColour.YELLOW].cards), 3
+        )
+        with patch.object(
+            self.g, "choose_player_target", return_value=self.p1
+        ), patch.object(
+            self.g,
+            "choose_full_set_target",
+            return_value=self.p1.properties[cards.PropertyColour.BROWN],
+        ):
+            self.g.play_deal_breaker(self.p2)
+        self.assertEqual(
+            len(self.p1.properties[cards.PropertyColour.BROWN].cards), 0
+        )
+        self.assertEqual(
+            len(self.p2.properties[cards.PropertyColour.BROWN].cards), 2
+        )
+        self.assertEqual(
+            len(self.p1.properties[cards.PropertyColour.YELLOW].cards), 0
+        )
+        self.assertEqual(
+            len(self.p2.properties[cards.PropertyColour.YELLOW].cards), 3
+        )
+
+    def test_forced_deal_no_properties(self):
+        self.p2.properties = self.p2.empty_property_sets()
+        with patch.object(
+            self.g, "choose_player_target", return_value=self.p2
+        ), self.assertRaises(game.window.InvalidChoiceError):
+            self.g.play_deal_breaker(self.p1)
+
+
+class TestSlyDeal(unittest.TestCase):
+    def setUp(self):
+        self.mock_window = Mock()
+        self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
+        self.g.start()
+        self.p1 = self.g.get_player("P1")
+        self.p2 = self.g.get_player("P2")
+        self.p2.add_property(
+            cards.PropertyCard("Red", 1, cards.PropertyColour.RED)
+        )
+
+    def test_sly_deal(self):
+        with patch.object(
+            self.g, "choose_player_target", return_value=self.p2
+        ), patch.object(
+            self.g,
+            "choose_property_target",
+            return_value=self.p2.properties[cards.PropertyColour.RED].cards[0],
+        ):
+            self.g.play_sly_deal(self.p1)
+        self.assertEqual(
+            len(self.p1.properties[cards.PropertyColour.RED].cards), 1
+        )
+        self.assertEqual(
+            len(self.p2.properties[cards.PropertyColour.RED].cards), 0
+        )
+
+    def test_forced_deal_no_properties(self):
+        self.p2.properties = self.p2.empty_property_sets()
+        with patch.object(
+            self.g, "choose_player_target", return_value=self.p2
+        ), self.assertRaises(game.window.InvalidChoiceError):
+            self.g.play_sly_deal(self.p1)
+
+
+class TestForcedDeal(unittest.TestCase):
+    def setUp(self):
+        self.mock_window = Mock()
+        self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
+        self.g.start()
+        self.p1 = self.g.get_player("P1")
+        self.p2 = self.g.get_player("P2")
+        self.p1.add_property(
+            cards.PropertyCard("Red", 1, cards.PropertyColour.RED)
+        )
+        self.p2.add_property(
+            cards.PropertyCard("Yellow", 1, cards.PropertyColour.YELLOW)
+        )
+
+    def test_forced_deal(self):
+        with patch.object(
+            self.g, "choose_player_target", return_value=self.p2
+        ), patch.object(
+            self.g,
+            "choose_property_target",
+            side_effect=[
+                self.p2.properties[cards.PropertyColour.YELLOW].cards[0],
+                self.p1.properties[cards.PropertyColour.RED].cards[0],
+            ],
+        ):
+            self.g.play_forced_deal(self.p1)
+        self.assertEqual(
+            len(self.p1.properties[cards.PropertyColour.RED].cards), 0
+        )
+        self.assertEqual(
+            len(self.p2.properties[cards.PropertyColour.RED].cards), 1
+        )
+        self.assertEqual(
+            len(self.p2.properties[cards.PropertyColour.YELLOW].cards), 0
+        )
+        self.assertEqual(
+            len(self.p1.properties[cards.PropertyColour.YELLOW].cards), 1
+        )
+
+    def test_forced_deal_target_no_properties(self):
+        self.p2.properties = self.p2.empty_property_sets()
+        with patch.object(
+            self.g, "choose_player_target", return_value=self.p2
+        ), self.assertRaises(game.window.InvalidChoiceError):
+            self.g.play_forced_deal(self.p1)
+
+    def test_forced_deal_source_no_properties(self):
+        self.p1.properties = self.p1.empty_property_sets()
+        with self.assertRaises(game.window.InvalidChoiceError):
+            self.g.play_forced_deal(self.p1)
+
+
 if __name__ == "__main__":
     unittest.main()

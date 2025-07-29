@@ -47,7 +47,7 @@ def detect_resize(win: window.Window) -> None:
 
 
 def run_game(stdscr: curses.window) -> game.Game:
-    players = ["Alice", "Bob", "Charlie"]
+    players = ["Alice", "Bob"]
     win = window.Window(stdscr, n_players=len(players))
     g = game.Game(players, deck="deck.json", win=win)
     g.start()

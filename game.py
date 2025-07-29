@@ -7,10 +7,6 @@ import player
 import window
 
 
-def _action_input_validation(key: str) -> bool:
-    return key.isdigit() and 1 <= int(key) <= 2
-
-
 class Game:
     def __init__(
         self,
@@ -80,6 +76,56 @@ class Game:
     def discard_card(self, card: cards.Card) -> None:
         self.discard_pile.append(card)
 
+    def play_deal_breaker(self, p: player.Player) -> None:
+        target = self.choose_player_target(exclude=p)
+        if not target.has_complete_property_set():
+            self.win.draw_log(f"{target.name} has no complete sets to take!")
+            raise window.InvalidChoiceError()
+        property_set = self.choose_full_set_target(target)
+        for card in list(property_set.cards):
+            p.add_property(card)
+            target.remove_property(card)
+        self.win.draw_log(
+            f"{p.name} stole the {property_set.colour.pretty()} set from {target.name}!"  # noqa: E501 pylint: disable=line-too-long
+        )
+
+    def play_sly_deal(self, p: player.Player) -> None:
+        target = self.choose_player_target(exclude=p)
+        if not target.has_properties(without_full_sets=True):
+            self.win.draw_log(f"{target.name} has no properties to take!")
+            raise window.InvalidChoiceError()
+        self.win.hand.draw_target_property_dialog(
+            target, without_full_sets=True
+        )
+        property_card = self.choose_property_target(
+            target, without_full_sets=True
+        )
+        p.add_property(property_card)
+        target.remove_property(property_card)
+        self.win.draw_log(
+            f"{p.name} took {property_card.name()} from {target.name}"
+        )
+
+    def play_forced_deal(self, p: player.Player) -> None:
+        if not p.has_properties(without_full_sets=True):
+            self.win.draw_log(f"{p.name} has no properties to swap!")
+            raise window.InvalidChoiceError()
+        target = self.choose_player_target(exclude=p)
+        if not target.has_properties(without_full_sets=True):
+            self.win.draw_log(f"{target.name} has no properties to swap!")
+            raise window.InvalidChoiceError()
+        target_card = self.choose_property_target(
+            target, without_full_sets=True
+        )
+        source_card = self.choose_property_target(p)
+        p.add_property(target_card)
+        target.remove_property(target_card)
+        target.add_property(source_card)
+        p.remove_property(source_card)
+        self.win.draw_log(
+            f"{p.name} forced {target.name} to swap {target_card.name()} with {source_card.name()}"  # noqa: E501 pylint: disable=line-too-long
+        )
+
     def get_rent_amount(self, card: cards.ActionCard, p: player.Player) -> int:
         action_type = card.action()
         assert (
@@ -99,13 +145,7 @@ class Game:
             return owned_colours_with_rents[0][1]
 
         self.win.hand.draw_rent_colour_choice(owned_colours_with_rents)
-
-        def validation(key: str) -> bool:
-            return key.isdigit() and 1 <= int(key) <= len(
-                owned_colours_with_rents
-            )
-
-        choice = self.win.get_number_input(validation)
+        choice = self.win.get_number_input(1, len(owned_colours_with_rents))
         return owned_colours_with_rents[choice - 1][1]
 
     def play_rent_card(self, card: cards.ActionCard, p: player.Player) -> None:
@@ -144,13 +184,13 @@ class Game:
     def play_action_card(
         self, card: cards.ActionCard, p: player.Player
     ) -> None:
-        if (
-            card.action() == cards.ActionType.DEAL_BREAKER
-            or card.action() == cards.ActionType.SLY_DEAL
-            or card.action() == cards.ActionType.FORCED_DEAL
-        ):
-            raise NotImplementedError()
-        if card.action().name.startswith("RENT"):
+        if card.action() == cards.ActionType.DEAL_BREAKER:
+            self.play_deal_breaker(p)
+        elif card.action() == cards.ActionType.SLY_DEAL:
+            self.play_sly_deal(p)
+        elif card.action() == cards.ActionType.FORCED_DEAL:
+            self.play_forced_deal(p)
+        elif card.action() in cards.RENT_CARD_COLOURS:
             self.play_rent_card(card, p)
         elif card.action() == cards.ActionType.DEBT_COLLECTOR:
             self.play_debt_collector_card(p)
@@ -171,7 +211,7 @@ class Game:
             p.add_to_bank(card)
         elif isinstance(card, cards.ActionCard):
             self.win.hand.draw_action_dialog()
-            choice = self.win.get_number_input(_action_input_validation)
+            choice = self.win.get_number_input(1, 2)
             if choice == 1:
                 self.play_action_card(card, p)
             elif choice == 2:
@@ -181,23 +221,43 @@ class Game:
         else:
             raise ValueError(f"Unknown card type: {type(card)}")
 
-    def _player_input_validation(self, key: str) -> bool:
-        return key.isdigit() and 1 <= int(key) <= len(self.players) - 1
-
     def choose_player_target(
         self, exclude: player.Player | None = None
     ) -> player.Player:
-        self.win.hand.draw_target_player_dialog(self.players, exclude)
         without_exclude = [p for p in self.players if p != exclude]
-        choice = self.win.get_number_input(self._player_input_validation)
+        if len(without_exclude) == 1:
+            return without_exclude[0]
+        self.win.hand.draw_target_player_dialog(self.players, exclude)
+        choice = self.win.get_number_input(1, len(without_exclude))
         return without_exclude[choice - 1]
 
     def choose_property_target(
-        self, target: player.Player
+        self, target: player.Player, without_full_sets: bool = False
     ) -> cards.PropertyCard:
-        self.win.hand.draw_target_property_dialog(target)
-        choice = self.win.get_number_input(target.property_input_validation)
-        return target.properties_to_list()[choice - 1]
+        self.win.hand.draw_target_property_dialog(
+            target, without_full_sets=without_full_sets
+        )
+        choice = self.win.get_number_input(
+            1, target.n_properties(without_full_sets=without_full_sets)
+        )
+        return target.properties_to_list(without_full_sets=without_full_sets)[
+            choice - 1
+        ]
+
+    def choose_full_set_target(
+        self, target: player.Player
+    ) -> player.PropertySet:
+        full_sets: list[player.PropertySet] = []
+        for prop in target.properties.values():
+            if prop.is_complete():
+                full_sets.append(prop)
+        if not full_sets:
+            raise window.InvalidChoiceError(
+                "Target player does not have a full set of properties"
+            )
+        self.win.hand.draw_target_full_set_dialog(target)
+        choice = self.win.get_number_input(1, len(full_sets))
+        return full_sets[choice - 1]
 
     def get_payment(
         self, p: player.Player, amount: int
@@ -226,10 +286,7 @@ class Game:
         return charged_properties
 
     def get_card_choice(self, p: player.Player) -> int:
-        def validation(key: str) -> bool:
-            return key.isdigit() and 1 <= int(key) <= len(p.hand)
-
-        return self.win.get_number_input(validation)
+        return self.win.get_number_input(1, len(p.hand))
 
     def check_win(self) -> bool:
         """

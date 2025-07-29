@@ -5,6 +5,18 @@ import cards
 import player
 
 
+def int_range_validator(v_min: int, v_max: int) -> Callable[[str], bool]:
+    """
+    Returns a validation function that checks if a key is a digit
+    and within the specified range (inclusive).
+    """
+
+    def validator(key: str) -> bool:
+        return key.isdigit() and v_min <= int(key) <= v_max
+
+    return validator
+
+
 class InvalidChoiceError(Exception):
     """
     Raised when the option taken is invalid.
@@ -111,10 +123,10 @@ class Window:
     def draw_log(self, message: str) -> None:
         self.log.log(message)
 
-    def get_number_input(self, validation: Callable[[str], bool]) -> int:
+    def get_number_input(self, v_min: int, v_max: int) -> int:
         while True:
             key = self.stdscr.getkey()
-            if validation(key):
+            if int_range_validator(v_min, v_max)(key):
                 return int(key)
             self.log.log("Invalid input, try again")
 
@@ -249,15 +261,33 @@ class Hand:
             idx += 1
         self.win.refresh()
 
-    def draw_target_property_dialog(self, target: player.Player) -> None:
+    def draw_target_property_dialog(
+        self, target: player.Player, without_full_sets=False
+    ) -> None:
         self.clear()
         self.win.addstr(2, 2, f"Choose a property from {target.name}:")
-        idx = 0
-        for _, properties in target.properties.items():
-            for prop in properties.cards:
-                prop_name = f"{prop.name()} ({prop.colour().pretty()}) (£{prop.value()})"  # noqa: E501 pylint: disable=line-too-long
-                self.win.addstr(3 + idx, 2, f"{idx + 1}. {prop_name}")
-                idx += 1
+        properties = target.properties_to_list(
+            without_full_sets=without_full_sets
+        )
+        for i, prop in enumerate(properties):
+            prop_name = f"{prop.name()} ({prop.colour().pretty()}) (£{prop.value()})"  # noqa: E501 pylint: disable=line-too-long
+            self.win.addstr(3 + i, 2, f"{i + 1}. {prop_name}")
+        self.win.refresh()
+
+    def draw_target_full_set_dialog(self, target: player.Player) -> None:
+        self.clear()
+        self.win.addstr(2, 2, f"Choose a full property set from {target.name}:")
+        full_sets = [
+            colour
+            for colour, properties in target.properties.items()
+            if properties.is_complete()
+        ]
+        for idx, colour in enumerate(full_sets):
+            self.win.addstr(
+                3 + idx,
+                2,
+                f"{idx + 1}. {colour.pretty()}",
+            )
         self.win.refresh()
 
     def draw_rent_colour_choice(

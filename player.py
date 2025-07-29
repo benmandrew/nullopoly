@@ -76,17 +76,15 @@ class Player:
     def total_bank_value(self) -> int:
         return sum(card.value() for card in self.bank)
 
-    def properties_to_list(self) -> list[cards.PropertyCard]:
-        return [
-            card
-            for property_set in self.properties.values()
-            for card in property_set.cards
-        ]
-
-    def n_properties(self) -> int:
-        return sum(
-            len(properties.cards) for properties in self.properties.values()
-        )
+    def properties_to_list(
+        self, without_full_sets=False
+    ) -> list[cards.PropertyCard]:
+        result = []
+        for property_set in self.properties.values():
+            if without_full_sets and property_set.is_complete():
+                continue
+            result.extend(property_set.cards)
+        return result
 
     def get_card_in_hand(self, i: int) -> cards.Card:
         """
@@ -146,6 +144,14 @@ class Player:
         )
         return key.isdigit() and 1 <= int(key) <= n_properties
 
+    def property_without_full_sets_input_validation(self, key: str) -> bool:
+        n_properties = sum(
+            len(properties.cards)
+            for properties in self.properties.values()
+            if not properties.is_complete()
+        )
+        return key.isdigit() and 1 <= int(key) <= n_properties
+
     def has_won(self) -> bool:
         """
         Returns True if the player has at least three complete property sets.
@@ -154,6 +160,41 @@ class Player:
             1 for prop_set in self.properties.values() if prop_set.is_complete()
         )
         return complete_sets >= 3
+
+    def has_complete_property_set(self) -> bool:
+        """
+        Returns True if the player has at least one complete property set.
+        """
+        return any(
+            prop_set.is_complete() for prop_set in self.properties.values()
+        )
+
+    def n_properties(self, without_full_sets: bool = False) -> int:
+        """
+        Returns the total number of properties the player has.
+        """
+        if without_full_sets:
+            return sum(
+                len(prop_set.cards)
+                for prop_set in self.properties.values()
+                if not prop_set.is_complete()
+            )
+        return sum(len(prop_set.cards) for prop_set in self.properties.values())
+
+    def has_properties(self, without_full_sets: bool = False) -> bool:
+        """
+        Returns True if the player has any properties.
+        If `without_full_sets` is True, it only counts properties
+        that are not part of a complete set.
+        """
+        if without_full_sets:
+            return any(
+                len(prop_set.cards) > 0 and not prop_set.is_complete()
+                for prop_set in self.properties.values()
+            )
+        return any(
+            len(prop_set.cards) > 0 for prop_set in self.properties.values()
+        )
 
     def fmt_hand(self) -> list[str]:
         return cards.fmt_cards_side_by_side(self.hand)
