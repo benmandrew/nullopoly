@@ -64,7 +64,19 @@ class Game:
     def add_card_to_deck(self, card: cards.Card) -> None:
         self.deck.append(card)
 
+    def draw(self, n_cards_played: int) -> None:
+        """
+        Draw the current game state.
+        """
+        self.win.table.draw(self.players)
+        self.win.hand.draw(
+            self.current_player(),
+            len(self.current_player().hand),
+            n_cards_played,
+        )
+
     def draw_card(self) -> cards.Card:
+        """Draw a card from the deck."""
         if not self.deck:
             self.deck = self.discard_pile
             self.discard_pile = []
@@ -285,8 +297,9 @@ class Game:
             charged_properties.append(property_card)
         return charged_properties
 
-    def get_card_choice(self, p: player.Player) -> int:
-        return self.win.get_number_input(1, len(p.hand))
+    def get_card_choice(self, p: player.Player) -> cards.Card:
+        choice = self.win.get_number_input(1, len(p.hand))
+        return p.get_card_in_hand(choice - 1)
 
     def check_win(self) -> bool:
         """

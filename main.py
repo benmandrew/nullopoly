@@ -17,21 +17,15 @@ def game_loop(g: game.Game) -> game.Game:
     g.deal_to_player(current_player, 2)
     n_cards_played = 0
     while n_cards_played < 3:
-        g.win.table.draw(g.players)
-        g.win.hand.draw(
-            current_player,
-            len(current_player.hand),
-            n_cards_played,
-        )
+        g.draw(n_cards_played)
         try:
-            choice = g.get_card_choice(current_player)
-            c = current_player.get_card_in_hand(choice - 1)
+            c = g.get_card_choice(current_player)
             g.play_card(c, current_player)
         except window.InvalidChoiceError:
             continue
         n_cards_played += 1
-        current_player.remove_card_from_hand(choice - 1)
-        if len(current_player.hand) == 0:
+        current_player.remove_card_from_hand(c)
+        if not current_player.hand:
             g.deal_from_empty(current_player)
         if g.check_win():
             raise WonError()

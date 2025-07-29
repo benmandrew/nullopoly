@@ -93,12 +93,12 @@ class Player:
         assert 0 <= i < len(self.hand), "Index out of range for hand"
         return self.hand[i]
 
-    def remove_card_from_hand(self, i: int) -> cards.Card:
+    def remove_card_from_hand(self, card: cards.Card) -> None:
         """
-        Remove a card from the player's hand by index.
+        Remove a card from the player's hand.
         """
-        assert 0 <= i < len(self.hand), "Index out of range for hand"
-        return self.hand.pop(i)
+        assert card in self.hand, "Card not found in hand"
+        self.hand.remove(card)
 
     def add_payment(self, payment: list[cards.Card]) -> None:
         for card in payment:
@@ -137,20 +137,6 @@ class Player:
         total = sum(card.value() for card in bank_cards)
         self.bank.clear()
         return bank_cards, max(0, amount - total)
-
-    def property_input_validation(self, key: str) -> bool:
-        n_properties = sum(
-            len(properties.cards) for properties in self.properties.values()
-        )
-        return key.isdigit() and 1 <= int(key) <= n_properties
-
-    def property_without_full_sets_input_validation(self, key: str) -> bool:
-        n_properties = sum(
-            len(properties.cards)
-            for properties in self.properties.values()
-            if not properties.is_complete()
-        )
-        return key.isdigit() and 1 <= int(key) <= n_properties
 
     def has_won(self) -> bool:
         """
