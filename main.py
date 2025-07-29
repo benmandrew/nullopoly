@@ -3,7 +3,7 @@ import signal
 import sys
 
 import game
-import window
+from window import window
 
 
 class WonError(Exception):
@@ -21,7 +21,7 @@ def game_loop(g: game.Game) -> game.Game:
         try:
             c = g.get_card_choice(current_player)
             g.play_card(c, current_player)
-        except window.InvalidChoiceError:
+        except window.common.InvalidChoiceError:
             continue
         n_cards_played += 1
         current_player.remove_card_from_hand(c)
@@ -29,6 +29,7 @@ def game_loop(g: game.Game) -> game.Game:
             g.deal_from_empty(current_player)
         if g.check_win():
             raise WonError()
+    g.draw(n_cards_played)
     return g
 
 

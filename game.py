@@ -4,7 +4,7 @@ from typing import cast
 import cards
 import parse_deck
 import player
-import window
+from window import window
 
 
 class Game:
@@ -87,7 +87,7 @@ class Game:
         target = self.choose_player_target(exclude=p)
         if not target.has_complete_property_set():
             self.win.draw_log(f"{target.name} has no complete sets to take!")
-            raise window.InvalidChoiceError()
+            raise window.common.InvalidChoiceError()
         property_set = self.choose_full_set_target(target)
         for card in list(property_set.cards):
             p.add_property(card)
@@ -100,7 +100,7 @@ class Game:
         target = self.choose_player_target(exclude=p)
         if not target.has_properties(without_full_sets=True):
             self.win.draw_log(f"{target.name} has no properties to take!")
-            raise window.InvalidChoiceError()
+            raise window.common.InvalidChoiceError()
         self.win.hand.draw_target_property_dialog(
             target, without_full_sets=True
         )
@@ -116,11 +116,11 @@ class Game:
     def play_forced_deal(self, p: player.Player) -> None:
         if not p.has_properties(without_full_sets=True):
             self.win.draw_log(f"{p.name} has no properties to swap!")
-            raise window.InvalidChoiceError()
+            raise window.common.InvalidChoiceError()
         target = self.choose_player_target(exclude=p)
         if not target.has_properties(without_full_sets=True):
             self.win.draw_log(f"{target.name} has no properties to swap!")
-            raise window.InvalidChoiceError()
+            raise window.common.InvalidChoiceError()
         target_card = self.choose_property_target(
             target, without_full_sets=True
         )
@@ -146,7 +146,7 @@ class Game:
             self.win.draw_log(
                 "You do not own any properties of the required colours"
             )
-            raise window.InvalidChoiceError()
+            raise window.common.InvalidChoiceError()
         if len(owned_colours_with_rents) == 1:
             return owned_colours_with_rents[0][1]
 
@@ -258,7 +258,7 @@ class Game:
             if prop.is_complete():
                 full_sets.append(prop)
         if not full_sets:
-            raise window.InvalidChoiceError(
+            raise window.common.InvalidChoiceError(
                 "Target player does not have a full set of properties"
             )
         self.win.hand.draw_target_full_set_dialog(target)

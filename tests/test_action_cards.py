@@ -5,6 +5,7 @@ import utils
 
 import cards
 import game
+from window import common
 
 
 class TestActionCards(unittest.TestCase):
@@ -220,7 +221,7 @@ class TestDealBreaker(unittest.TestCase):
         self.p2.properties = self.p2.empty_property_sets()
         with patch.object(
             self.g, "choose_player_target", return_value=self.p2
-        ), self.assertRaises(game.window.InvalidChoiceError):
+        ), self.assertRaises(common.InvalidChoiceError):
             self.g.play_deal_breaker(self.p1)
 
 
@@ -255,7 +256,7 @@ class TestSlyDeal(unittest.TestCase):
         self.p2.properties = self.p2.empty_property_sets()
         with patch.object(
             self.g, "choose_player_target", return_value=self.p2
-        ), self.assertRaises(game.window.InvalidChoiceError):
+        ), self.assertRaises(common.InvalidChoiceError):
             self.g.play_sly_deal(self.p1)
 
 
@@ -302,10 +303,10 @@ class TestForcedDeal(unittest.TestCase):
         self.p2.properties = self.p2.empty_property_sets()
         with patch.object(
             self.g, "choose_player_target", return_value=self.p2
-        ), self.assertRaises(game.window.InvalidChoiceError):
+        ), self.assertRaises(common.InvalidChoiceError):
             self.g.play_forced_deal(self.p1)
 
     def test_forced_deal_source_no_properties(self):
         self.p1.properties = self.p1.empty_property_sets()
-        with self.assertRaises(game.window.InvalidChoiceError):
+        with self.assertRaises(common.InvalidChoiceError):
             self.g.play_forced_deal(self.p1)
