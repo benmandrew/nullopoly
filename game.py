@@ -110,7 +110,7 @@ class Game:
         p.add_property(property_card)
         target.remove_property(property_card)
         self.win.draw_log(
-            f"{p.name} took {property_card.name()} from {target.name}"
+            f"{p.name} took {property_card.name} from {target.name}"
         )
 
     def play_forced_deal(self, p: player.Player) -> None:
@@ -130,15 +130,14 @@ class Game:
         target.add_property(source_card)
         p.remove_property(source_card)
         self.win.draw_log(
-            f"{p.name} forced {target.name} to swap {target_card.name()} with {source_card.name()}"  # noqa: E501 pylint: disable=line-too-long
+            f"{p.name} forced {target.name} to swap {target_card.name} with {source_card.name}"  # noqa: E501 pylint: disable=line-too-long
         )
 
     def get_rent_amount(self, card: cards.ActionCard, p: player.Player) -> int:
-        action_type = card.action()
         assert (
-            action_type in cards.RENT_CARD_COLOURS
-        ), f"Not a rent card: {action_type}"
-        colour_options = cards.RENT_CARD_COLOURS[action_type]
+            card.action in cards.RENT_CARD_COLOURS
+        ), f"Not a rent card: {card.action}"
+        colour_options = cards.RENT_CARD_COLOURS[card.action]
         owned_colours_with_rents = []
         for c in colour_options:
             if p.properties[c].cards:
@@ -157,7 +156,7 @@ class Game:
 
     def play_rent_card(self, card: cards.ActionCard, p: player.Player) -> None:
         rent_amount = self.get_rent_amount(card, p)
-        if card.action() is cards.ActionType.RENT_WILD:
+        if card.action is cards.ActionType.RENT_WILD:
             target = self.choose_player_target(exclude=p)
             self.transfer_payment(target, p, rent_amount)
             self.win.draw_log(
@@ -191,23 +190,23 @@ class Game:
     def play_action_card(
         self, card: cards.ActionCard, p: player.Player
     ) -> None:
-        if card.action() == cards.ActionType.DEAL_BREAKER:
+        if card.action == cards.ActionType.DEAL_BREAKER:
             self.play_deal_breaker(p)
-        elif card.action() == cards.ActionType.SLY_DEAL:
+        elif card.action == cards.ActionType.SLY_DEAL:
             self.play_sly_deal(p)
-        elif card.action() == cards.ActionType.FORCED_DEAL:
+        elif card.action == cards.ActionType.FORCED_DEAL:
             self.play_forced_deal(p)
-        elif card.action() in cards.RENT_CARD_COLOURS:
+        elif card.action in cards.RENT_CARD_COLOURS:
             self.play_rent_card(card, p)
-        elif card.action() == cards.ActionType.DEBT_COLLECTOR:
+        elif card.action == cards.ActionType.DEBT_COLLECTOR:
             self.play_debt_collector_card(p)
-        elif card.action() == cards.ActionType.ITS_MY_BIRTHDAY:
+        elif card.action == cards.ActionType.ITS_MY_BIRTHDAY:
             self.play_birthday_card(p)
-        elif card.action() == cards.ActionType.PASS_GO:
+        elif card.action == cards.ActionType.PASS_GO:
             self.play_pass_go(p)
         else:
             raise NotImplementedError(
-                f"Action card type '{card.action()}' not implemented"
+                f"Action card type '{card.action}' not implemented"
             )
         self.discard_card(card)
 
@@ -288,7 +287,7 @@ class Game:
         while amount > 0 and p.properties_to_list():
             property_card = self.choose_property_target(p)
             p.remove_property(property_card)
-            amount -= property_card.value()
+            amount -= property_card.value
             charged_properties.append(property_card)
         return charged_properties
 

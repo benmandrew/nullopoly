@@ -248,7 +248,7 @@ class Table:
                 continue
             self.draw_property(win, colour, properties, idx)
             idx += 1
-        bank_str = ", ".join(f"£{card.value()}" for card in p.bank)
+        bank_str = ", ".join(f"£{card.value}" for card in p.bank)
         win.addstr(idx + 3, 2, f"Bank (£{p.total_bank_value()}): {bank_str}")
         win.refresh()
 
@@ -260,7 +260,7 @@ class Table:
         idx: int,
     ) -> None:
         cards_str = ", ".join(
-            f"{card.name()} (£{card.value()})" for card in properties.cards
+            f"{card.name} (£{card.value})" for card in properties.cards
         )
         # Use a bitwise flag to bold the text if the set is complete
         completed = curses.A_BOLD if properties.is_complete() else 0
@@ -274,6 +274,9 @@ class Table:
 
 
 class Hand:
+
+    CARD_HEIGHT = 5
+
     def __init__(
         self, stdscr: curses.window, height: int, width: int, y: int, x: int
     ):
@@ -291,8 +294,12 @@ class Hand:
     ) -> None:
         self.clear()
         self.win.addstr(1, 2, f"It's {p.name}'s turn", curses.A_BOLD)
-        for idx, line in enumerate(p.fmt_hand()):
-            self.win.addstr(idx + 2, 2, line)
+        x = 2
+        for i, card in enumerate(p.hand):
+            self.win.addstr(2, x, f"{i + 1}.")
+            x = self.draw_card(card, 3, x)
+        # for idx, line in enumerate(p.fmt_hand()):
+        #     self.win.addstr(idx + 2, 2, line)
         self.win.addstr(
             9,
             2,
@@ -304,6 +311,134 @@ class Hand:
             f"Choose a card to play (1-{hand_len}): ",
         )
         self.win.refresh()
+
+    def draw_card(self, card: cards.Card, y: int, x: int) -> int:
+        """
+        Draws a card in the hand window at the specified position.
+        Returns the new x position after drawing the card.
+        """
+        if isinstance(card, cards.ActionCard):
+            return self.draw_action_card(card, y, x)
+        if isinstance(card, cards.PropertyCard):
+            return self.draw_property_card(card, y, x)
+        if isinstance(card, cards.MoneyCard):
+            return self.draw_money_card(card, y, x)
+        raise ValueError(f"Unknown card type: {type(card)}")
+
+    def draw_box(self, y: int, x: int, height: int, width: int) -> None:
+        self.win.addch(y, x, curses.ACS_ULCORNER)
+        self.win.hline(y, x + 1, curses.ACS_HLINE, width - 2)
+        self.win.addch(y, x + width - 1, curses.ACS_URCORNER)
+        self.win.vline(y + 1, x, curses.ACS_VLINE, height - 2)
+        self.win.vline(y + 1, x + width - 1, curses.ACS_VLINE, height - 2)
+        self.win.addch(y + height - 1, x, curses.ACS_LLCORNER)
+        self.win.hline(y + height - 1, x + 1, curses.ACS_HLINE, width - 2)
+        self.win.addch(y + height - 1, x + width - 1, curses.ACS_LRCORNER)
+
+    def draw_rent_wild_content(
+        self, y: int, x: int, card: cards.ActionCard
+    ) -> None:
+        assert (
+            card.action == cards.ActionType.RENT_WILD
+        ), "Action type must be rent wild"
+        self.win.addstr(y, x, "Rent")
+        self.win.addstr(
+            y + 1,
+            x,
+            "W",
+            curses.color_pair(COLOUR_MAP[cards.PropertyColour.RED]),
+        )
+        self.win.addstr(
+            y + 1,
+            x + 1,
+            "i",
+            curses.color_pair(COLOUR_MAP[cards.PropertyColour.GREEN]),
+        )
+        self.win.addstr(
+            y + 1,
+            x + 2,
+            "l",
+            curses.color_pair(COLOUR_MAP[cards.PropertyColour.YELLOW]),
+        )
+        self.win.addstr(
+            y + 1,
+            x + 3,
+            "d",
+            curses.color_pair(COLOUR_MAP[cards.PropertyColour.LIGHT_BLUE]),
+        )
+        self.win.addstr(y + 2, x, f"£{card.value}")
+
+    def draw_rent_content(self, y: int, x: int, card: cards.ActionCard) -> None:
+        assert (
+            card.action in cards.RENT_CARD_COLOURS
+        ), "Action type must be rent"
+        if card.action == cards.ActionType.RENT_WILD:
+            self.draw_rent_wild_content(y, x, card)
+            return
+        colours = cards.RENT_CARD_COLOURS[card.action]
+        assert len(colours) == 2, "Rent action must have two colours"
+        self.win.addstr(y, x, "Rent")
+        first = colours[0].pretty()
+        self.win.addstr(
+            y + 1, x, f"{first}", curses.color_pair(COLOUR_MAP[colours[0]])
+        )
+        self.win.addstr(
+            y + 1,
+            x + len(first) + 1,
+            f"{colours[1].pretty()}",
+            curses.color_pair(COLOUR_MAP[colours[1]]),
+        )
+        self.win.addstr(y + 2, x, f"£{card.value}")
+
+    def draw_action_card(self, card: cards.ActionCard, y: int, x: int) -> int:
+        """
+        Draws an action card in the hand window at the specified position.
+        Returns the new x position after drawing the card.
+        """
+        action_str = card.action.pretty()
+        if cards.is_rent_action(card.action):
+            rent, colours = action_str.split(" ", 1)
+            lines = [rent, colours, f"£{card.value}"]
+        else:
+            lines = [action_str, "", f"£{card.value}"]
+        width = max(len(line) for line in lines) + 4
+        self.draw_box(y, x, self.CARD_HEIGHT, width)
+        if cards.is_rent_action(card.action):
+            self.draw_rent_content(y + 1, x + 2, card)
+        else:
+            self.win.addstr(y + 1, x + 2, action_str)
+            self.win.addstr(y + 3, x + 2, f"£{card.value}")
+        return x + width + 1
+
+    def draw_property_card(
+        self, card: cards.PropertyCard, y: int, x: int
+    ) -> int:
+        """
+        Draws a property card in the hand window at the specified position.
+        Returns the new x position after drawing the card.
+        """
+        colour_str = card.colour.pretty()
+        lines = [card.name, colour_str, f"£{card.value}"]
+        width = max(len(line) for line in lines) + 4
+        self.draw_box(y, x, self.CARD_HEIGHT, width)
+        self.win.addstr(y + 1, x + 2, card.name)
+        self.win.addstr(
+            y + 2, x + 2, colour_str, curses.color_pair(COLOUR_MAP[card.colour])
+        )
+        self.win.addstr(y + 3, x + 2, f"£{card.value}")
+        return x + width + 1
+
+    def draw_money_card(self, card: cards.MoneyCard, y: int, x: int) -> int:
+        """
+        Draws a money card in the hand window at the specified position.
+        Returns the new x position after drawing the card.
+        """
+        lines = ["Money", f"£{card.value}"]
+        width = max(len(line) for line in lines) + 4
+        self.draw_box(y, x, self.CARD_HEIGHT, width)
+        self.win.addstr(y + 1, x + 2, "Money")
+        self.win.addstr(y + 3, x + 2, f"£{card.value}")
+        return x + width + 1
 
     def draw_action_dialog(self) -> None:
         self.clear()
@@ -334,7 +469,7 @@ class Hand:
             without_full_sets=without_full_sets
         )
         for i, prop in enumerate(properties):
-            prop_name = f"{prop.name()} ({prop.colour().pretty()}) (£{prop.value()})"  # noqa: E501 pylint: disable=line-too-long
+            prop_name = f"{prop.name} ({prop.colour.pretty()}) (£{prop.value})"
             self.win.addstr(3 + i, 2, f"{i + 1}. {prop_name}")
         self.win.refresh()
 

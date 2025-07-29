@@ -10,16 +10,16 @@ class PropertySet:
         self.cards: list[cards.PropertyCard] = []
 
     def add(self, card: cards.PropertyCard) -> None:
-        assert card.colour() == self.colour, (
-            f"Card colour {card.colour()} does not match set colour"
+        assert card.colour == self.colour, (
+            f"Card colour {card.colour} does not match set colour"
             f" {self.colour}"
         )
         self.cards.append(card)
 
     def remove(self, card: cards.PropertyCard) -> None:
         assert card in self.cards, "Card not found in the property set"
-        assert card.colour() == self.colour, (
-            f"Card colour {card.colour()} does not match set colour"
+        assert card.colour == self.colour, (
+            f"Card colour {card.colour} does not match set colour"
             f" {self.colour}"
         )
         self.cards.remove(card)
@@ -68,13 +68,13 @@ class Player:
         self.hand.append(card)
 
     def add_property(self, property_card: cards.PropertyCard) -> None:
-        self.properties[property_card.colour()].add(property_card)
+        self.properties[property_card.colour].add(property_card)
 
     def add_to_bank(self, card: cards.MoneyCard | cards.ActionCard) -> None:
         self.bank.append(card)
 
     def total_bank_value(self) -> int:
-        return sum(card.value() for card in self.bank)
+        return sum(card.value for card in self.bank)
 
     def properties_to_list(
         self, without_full_sets=False
@@ -110,7 +110,7 @@ class Player:
                 raise ValueError(f"Unknown card type: {type(card)}")
 
     def remove_property(self, card: cards.PropertyCard) -> None:
-        self.properties[card.colour()].remove(card)
+        self.properties[card.colour].remove(card)
 
     def charge_money_payment(
         self, amount: int
@@ -124,7 +124,7 @@ class Player:
         best_total = None
         for r in range(0, n):
             for combo in itertools.combinations(bank_cards, r + 1):
-                total = sum(card.value() for card in combo)
+                total = sum(card.value for card in combo)
                 if total >= amount and (
                     best_total is None or total < best_total
                 ):
@@ -134,7 +134,7 @@ class Player:
             for card in best_combo:
                 self.bank.remove(card)
             return list(best_combo), 0
-        total = sum(card.value() for card in bank_cards)
+        total = sum(card.value for card in bank_cards)
         self.bank.clear()
         return bank_cards, max(0, amount - total)
 

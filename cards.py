@@ -1,23 +1,4 @@
-from abc import ABC, abstractmethod
 from enum import Enum
-
-
-class Card(ABC):
-    @abstractmethod
-    def name(self) -> str:
-        pass
-
-    @abstractmethod
-    def value(self) -> int:
-        pass
-
-    @abstractmethod
-    def card_type(self) -> str:
-        pass
-
-    @abstractmethod
-    def pretty(self) -> str:
-        pass
 
 
 class PropertyColour(Enum):
@@ -65,8 +46,11 @@ class ActionType(Enum):
     RENT_RAILROAD_UTILITY = "rent_railroad_utility"
     PASS_GO = "pass_go"
 
+    def pretty(self) -> str:
+        return self.name.replace("_", " ").title()
 
-RENT_CARD_COLOURS = {
+
+RENT_CARD_COLOURS: dict[ActionType, list[PropertyColour]] = {
     ActionType.RENT_BROWN_LIGHT_BLUE: [
         PropertyColour.BROWN,
         PropertyColour.LIGHT_BLUE,
@@ -85,27 +69,22 @@ RENT_CARD_COLOURS = {
 }
 
 
-class PropertyCard(Card):
+def is_rent_action(action: ActionType) -> bool:
+    return action in RENT_CARD_COLOURS
+
+
+type Card = "ActionCard | PropertyCard | MoneyCard"
+
+
+class PropertyCard:
     def __init__(self, name: str, value: int, colour: PropertyColour):
-        self._name = name
-        self._value = value
-        self._colour = colour
-
-    def name(self) -> str:
-        return self._name
-
-    def value(self) -> int:
-        return self._value
-
-    def card_type(self) -> str:
-        return "property"
-
-    def colour(self) -> PropertyColour:
-        return self._colour
+        self.name = name
+        self.value = value
+        self.colour = colour
 
     def pretty(self) -> str:
-        colour_str = self._colour.name.replace("_", " ").title()
-        lines = [self._name, colour_str, f"£{self._value}"]
+        colour_str = self.colour.name.replace("_", " ").title()
+        lines = [self.name, colour_str, f"£{self.value}"]
         width = max(len(line) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
@@ -113,33 +92,25 @@ class PropertyCard(Card):
         return f"{top}\n{content}\n{bottom}"
 
     def __str__(self) -> str:
-        return f"Property({self._name}, £{self._value}, {self._colour})"
+        return f"Property({self.name}, £{self.value}, {self.colour})"
 
     def __repr__(self) -> str:
-        return f"Property({self._name}, £{self._value}, {self._colour})"
+        return f"Property({self.name}, £{self.value}, {self.colour})"
 
 
-class ActionCard(Card):
+class ActionCard:
     def __init__(self, name: str, value: int, action: ActionType):
-        self._name = name
-        self._value = value
-        self._action = action
-
-    def name(self) -> str:
-        return self._name
-
-    def value(self) -> int:
-        return self._value
-
-    def card_type(self) -> str:
-        return "action"
-
-    def action(self) -> ActionType:
-        return self._action
+        self.name = name
+        self.value = value
+        self.action = action
 
     def pretty(self) -> str:
-        action_str = self._action.name.replace("_", " ").title()
-        lines = [action_str, "", f"£{self._value}"]
+        action_str = self.action.pretty()
+        if is_rent_action(self.action):
+            rent, colours = action_str.split(" ", 1)
+            lines = [rent, colours, f"£{self.value}"]
+        else:
+            lines = [action_str, "", f"£{self.value}"]
         width = max(len(line) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
@@ -147,27 +118,18 @@ class ActionCard(Card):
         return f"{top}\n{content}\n{bottom}"
 
     def __str__(self) -> str:
-        return f"Action({self._name}, £{self._value})"
+        return f"Action({self.name}, £{self.value})"
 
     def __repr__(self) -> str:
         return self.__str__()
 
 
-class MoneyCard(Card):
+class MoneyCard:
     def __init__(self, value: int):
-        self._value = value
-
-    def name(self) -> str:
-        return f"${self._value}M"
-
-    def value(self) -> int:
-        return self._value
-
-    def card_type(self) -> str:
-        return "money"
+        self.value = value
 
     def pretty(self) -> str:
-        lines = ["Money", "", f"£{self._value}"]
+        lines = ["Money", "", f"£{self.value}"]
         width = max(len(line) for line in lines) + 4
         top = f"┌{'─' * (width - 2)}┐"
         bottom = f"└{'─' * (width - 2)}┘"
@@ -175,10 +137,10 @@ class MoneyCard(Card):
         return f"{top}\n{content}\n{bottom}"
 
     def __str__(self) -> str:
-        return f"Money(£{self._value})"
+        return f"Money(£{self.value})"
 
     def __repr__(self) -> str:
-        return f"Money(£{self._value})"
+        return f"Money(£{self.value})"
 
 
 def fmt_cards_side_by_side(cards: list[Card]) -> list[str]:
