@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 from typing import cast
 
@@ -14,7 +16,7 @@ class Game:
         deck: str | list[cards.Card],
         win: window.Window,
         starting_cards: int = 5,
-    ):
+    ) -> None:
         self.players: list[player.Player] = [
             player.Player(name) for name in player_names
         ]
@@ -43,7 +45,7 @@ class Game:
 
     def next_player(self) -> player.Player:
         self.current_player_index = (self.current_player_index + 1) % len(
-            self.players
+            self.players,
         )
         return self.players[self.current_player_index]
 
@@ -59,15 +61,14 @@ class Game:
         for p in self.players:
             if p.name == name:
                 return p
-        raise ValueError(f"Player '{name}' not found")
+        msg = f"Player '{name}' not found"
+        raise ValueError(msg)
 
     def add_card_to_deck(self, card: cards.Card) -> None:
         self.deck.append(card)
 
     def draw(self, n_cards_played: int) -> None:
-        """
-        Draw the current game state.
-        """
+        """Draw the current game state."""
         self.win.draw(self.current_player(), self.players, n_cards_played)
 
     def draw_card(self) -> cards.Card:
@@ -76,7 +77,8 @@ class Game:
             self.deck = self.discard_pile
             self.discard_pile = []
             if not self.deck:
-                raise RuntimeError("No cards left to draw.")
+                msg = "No cards left to draw."
+                raise RuntimeError(msg)
             random.shuffle(self.deck)
         return self.deck.pop()
 
@@ -87,42 +89,45 @@ class Game:
         target = self.choose_player_target(exclude=p)
         if not target.has_complete_property_set():
             self.win.draw_log(f"{target.name} has no complete sets to take!")
-            raise common.InvalidChoiceError()
+            raise common.InvalidChoiceError
         property_set = self.choose_full_set_target(target)
         for card in list(property_set.cards):
             p.add_property(card)
             target.remove_property(card)
         self.win.draw_log(
-            f"{p.name} stole the {property_set.colour.pretty()} set from {target.name}!"  # noqa: E501 pylint: disable=line-too-long
+            f"{p.name} stole the {property_set.colour.pretty()} set from {target.name}!",  # noqa: E501 pylint: disable=line-too-long
         )
 
     def play_sly_deal(self, p: player.Player) -> None:
         target = self.choose_player_target(exclude=p)
         if not target.has_properties(without_full_sets=True):
             self.win.draw_log(f"{target.name} has no properties to take!")
-            raise common.InvalidChoiceError()
+            raise common.InvalidChoiceError
         self.win.hand.draw_target_property_dialog(
-            target, without_full_sets=True
+            target,
+            without_full_sets=True,
         )
         property_card = self.choose_property_target(
-            target, without_full_sets=True
+            target,
+            without_full_sets=True,
         )
         p.add_property(property_card)
         target.remove_property(property_card)
         self.win.draw_log(
-            f"{p.name} took {property_card.name} from {target.name}"
+            f"{p.name} took {property_card.name} from {target.name}",
         )
 
     def play_forced_deal(self, p: player.Player) -> None:
         if not p.has_properties(without_full_sets=True):
             self.win.draw_log(f"{p.name} has no properties to swap!")
-            raise common.InvalidChoiceError()
+            raise common.InvalidChoiceError
         target = self.choose_player_target(exclude=p)
         if not target.has_properties(without_full_sets=True):
             self.win.draw_log(f"{target.name} has no properties to swap!")
-            raise common.InvalidChoiceError()
+            raise common.InvalidChoiceError
         target_card = self.choose_property_target(
-            target, without_full_sets=True
+            target,
+            without_full_sets=True,
         )
         source_card = self.choose_property_target(p)
         p.add_property(target_card)
@@ -130,7 +135,7 @@ class Game:
         target.add_property(source_card)
         p.remove_property(source_card)
         self.win.draw_log(
-            f"{p.name} forced {target.name} to swap {target_card.name} with {source_card.name}"  # noqa: E501 pylint: disable=line-too-long
+            f"{p.name} forced {target.name} to swap {target_card.name} with {source_card.name}",  # noqa: E501 pylint: disable=line-too-long
         )
 
     def get_rent_amount(self, card: cards.ActionCard, p: player.Player) -> int:
@@ -138,15 +143,16 @@ class Game:
             card.action in cards.RENT_CARD_COLOURS
         ), f"Not a rent card: {card.action}"
         colour_options = cards.RENT_CARD_COLOURS[card.action]
-        owned_colours_with_rents = []
-        for c in colour_options:
-            if p.properties[c].cards:
-                owned_colours_with_rents.append((c, p.properties[c].rent()))
+        owned_colours_with_rents = [
+            (c, p.properties[c].rent())
+            for c in colour_options
+            if p.properties[c].cards
+        ]
         if not owned_colours_with_rents:
             self.win.draw_log(
-                "You do not own any properties of the required colours"
+                "You do not own any properties of the required colours",
             )
-            raise common.InvalidChoiceError()
+            raise common.InvalidChoiceError
         if len(owned_colours_with_rents) == 1:
             return owned_colours_with_rents[0][1]
 
@@ -160,14 +166,14 @@ class Game:
             target = self.choose_player_target(exclude=p)
             self.transfer_payment(target, p, rent_amount)
             self.win.draw_log(
-                f"{p.name} charged {target.name} £{rent_amount} in rent"
+                f"{p.name} charged {target.name} £{rent_amount} in rent",
             )
         else:
             for target in self.players:
                 if target != p:
                     self.transfer_payment(target, p, rent_amount)
             self.win.draw_log(
-                f"{p.name} charged everybody £{rent_amount} in rent"
+                f"{p.name} charged everybody £{rent_amount} in rent",
             )
 
     def play_birthday_card(self, p: player.Player) -> None:
@@ -175,7 +181,7 @@ class Game:
             if target != p:
                 self.transfer_payment(target, p, 2)
         self.win.draw_log(
-            f"{p.name} collected £2 from each player for their birthday"
+            f"{p.name} collected £2 from each player for their birthday",
         )
 
     def play_debt_collector_card(self, p: player.Player) -> None:
@@ -188,7 +194,9 @@ class Game:
         self.deal_to_player(p, 2)
 
     def play_action_card(
-        self, card: cards.ActionCard, p: player.Player
+        self,
+        card: cards.ActionCard,
+        p: player.Player,
     ) -> None:
         if card.action == cards.ActionType.DEAL_BREAKER:
             self.play_deal_breaker(p)
@@ -205,8 +213,9 @@ class Game:
         elif card.action == cards.ActionType.PASS_GO:
             self.play_pass_go(p)
         else:
+            msg = f"Action card type '{card.action}' not implemented"
             raise NotImplementedError(
-                f"Action card type '{card.action}' not implemented"
+                msg,
             )
         self.discard_card(card)
 
@@ -223,12 +232,15 @@ class Game:
             elif choice == 2:
                 p.add_to_bank(card)
             else:
-                raise ValueError("Invalid choice for action card")
+                msg = "Invalid choice for action card"
+                raise ValueError(msg)
         else:
-            raise ValueError(f"Unknown card type: {type(card)}")
+            msg = f"Unknown card type: {type(card)}"
+            raise TypeError(msg)
 
     def choose_player_target(
-        self, exclude: player.Player | None = None
+        self,
+        exclude: player.Player | None = None,
     ) -> player.Player:
         without_exclude = [p for p in self.players if p != exclude]
         if len(without_exclude) == 1:
@@ -238,50 +250,63 @@ class Game:
         return without_exclude[choice - 1]
 
     def choose_property_target(
-        self, target: player.Player, without_full_sets: bool = False
+        self,
+        target: player.Player,
+        without_full_sets: bool = False,
     ) -> cards.PropertyCard:
         self.win.hand.draw_target_property_dialog(
-            target, without_full_sets=without_full_sets
+            target,
+            without_full_sets=without_full_sets,
         )
         choice = self.win.get_number_input(
-            1, target.n_properties(without_full_sets=without_full_sets)
+            1,
+            target.n_properties(without_full_sets=without_full_sets),
         )
         return target.properties_to_list(without_full_sets=without_full_sets)[
             choice - 1
         ]
 
     def choose_full_set_target(
-        self, target: player.Player
+        self,
+        target: player.Player,
     ) -> player.PropertySet:
-        full_sets: list[player.PropertySet] = []
-        for prop in target.properties.values():
-            if prop.is_complete():
-                full_sets.append(prop)
+        full_sets = [
+            prop for prop in target.properties.values() if prop.is_complete()
+        ]
         if not full_sets:
+            msg = "Target player does not have a full set of properties"
             raise common.InvalidChoiceError(
-                "Target player does not have a full set of properties"
+                msg,
             )
         self.win.hand.draw_target_full_set_dialog(target)
         choice = self.win.get_number_input(1, len(full_sets))
         return full_sets[choice - 1]
 
     def get_payment(
-        self, p: player.Player, amount: int
+        self,
+        p: player.Player,
+        amount: int,
     ) -> tuple[
-        list[cards.MoneyCard | cards.ActionCard], list[cards.PropertyCard]
+        list[cards.MoneyCard | cards.ActionCard],
+        list[cards.PropertyCard],
     ]:
         charged_cards, remaining = p.charge_money_payment(amount)
         charged_properties = self.charge_properties(p, remaining)
         return charged_cards, charged_properties
 
     def transfer_payment(
-        self, from_player: player.Player, to_player: player.Player, amount: int
+        self,
+        from_player: player.Player,
+        to_player: player.Player,
+        amount: int,
     ) -> None:
         money, properties = self.get_payment(from_player, amount)
-        to_player.add_payment(cast(list[cards.Card], money + properties))
+        to_player.add_payment(cast("list[cards.Card]", money + properties))
 
     def charge_properties(
-        self, p: player.Player, amount: int
+        self,
+        p: player.Player,
+        amount: int,
     ) -> list[cards.PropertyCard]:
         charged_properties = []
         while amount > 0 and p.properties_to_list():
@@ -296,9 +321,7 @@ class Game:
         return p.get_card_in_hand(choice - 1)
 
     def check_win(self) -> bool:
-        """
-        Check if any player has won the game.
-        """
+        """Check if any player has won the game."""
         has_won = [p for p in self.players if p.has_won()]
         if not has_won:
             return False

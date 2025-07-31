@@ -7,13 +7,17 @@ from window import common
 
 class Table:
     def __init__(
-        self, stdscr: curses.window, n_players: int, height: int, width: int
-    ):
+        self,
+        stdscr: curses.window,
+        n_players: int,
+        height: int,
+        width: int,
+    ) -> None:
         self.table_windows: list[curses.window] = []
         for i in range(n_players):
             table_width = width // n_players
             self.table_windows.append(
-                stdscr.subwin(height, table_width, 0, table_width * i)
+                stdscr.subwin(height, table_width, 0, table_width * i),
             )
 
     def resize(self, height: int, width: int) -> None:
@@ -28,7 +32,7 @@ class Table:
 
     def draw(self, players: list[player.Player]) -> None:
         assert len(players) == len(
-            self.table_windows
+            self.table_windows,
         ), "Number of players must match number of table windows"
         for table_window, p in zip(self.table_windows, players):
             self.draw_player(table_window, p)

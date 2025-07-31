@@ -5,8 +5,7 @@ import cards
 
 
 def int_range_validator(v_min: int, v_max: int) -> Callable[[str], bool]:
-    """
-    Returns a validation function that checks if a key is a digit
+    """Returns a validation function that checks if a key is a digit
     and within the specified range (inclusive).
     """
 
@@ -17,9 +16,7 @@ def int_range_validator(v_min: int, v_max: int) -> Callable[[str], bool]:
 
 
 def is_enter_key(key: str) -> bool:
-    """
-    Returns True if the key is an Enter key (either '\n' or '\r').
-    """
+    r"""Returns True if the key is an Enter key (either '\n' or '\r')."""
     return key in ("\n", "\r", chr(10), chr(13))
 
 
@@ -78,9 +75,7 @@ def init_colours() -> None:
 
 
 class InvalidChoiceError(Exception):
-    """
-    Raised when the option taken is invalid.
-    """
+    """Raised when the option taken is invalid."""
 
 
 COLOUR_MAP = {

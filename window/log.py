@@ -11,7 +11,7 @@ class Log:
         n_cols: int,
         begin_y: int,
         begin_x: int,
-    ):
+    ) -> None:
         self.win = stdscr.subwin(n_lines, n_cols, begin_y, begin_x)
         self.log_lines: list[str] = []
         self.log_idx = 0

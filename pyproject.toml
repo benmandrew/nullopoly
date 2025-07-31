@@ -4,17 +4,44 @@ line-length = 80
 [tool.ruff]
 line-length = 80
 lint.select = [
-    "E",   # pycodestyle (errors)s
-    "F",   # pyflakes
-    "W",   # pycodestyle (warnings)
-    "I",   # isort (import sorting)
-    "N",   # pep8-naming
-    "UP",  # pyupgrade (modern syntax)
-    "RET", # flake8-return (return statement style)
-    "RUF", # Ruff-specific rules
-    "B",   # flake8-bugbear (bug-prone patterns)
-    "SIM", # flake8-simplify
-    "TID", # flake8-tidy-imports
+    # "E",   # pycodestyle (errors)s
+    # "F",   # pyflakes
+    # "W",   # pycodestyle (warnings)
+    # "I",   # isort (import sorting)
+    # "N",   # pep8-naming
+    # "UP",  # pyupgrade (modern syntax)
+    # "RET", # flake8-return (return statement style)
+    # "RUF", # Ruff-specific rules
+    # "B",   # flake8-bugbear (bug-prone patterns)
+    # "SIM", # flake8-simplify
+    # "TID", # flake8-tidy-imports
+    "ALL"
+]
+
+lint.ignore = [
+    "C901",
+    "S105",
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+    "D203",
+    "D205",
+    "D213",
+    "D401",
+    "S101",
+    "FBT001",
+    "FBT002",
+    "FBT003",
+    "PLR2004",
+    "PT009",
+    "PT027",
+    "TC001",
+    "TC003",
+    "TRY003",
 ]
 
 [tool.pylint.'MESSAGES CONTROL']

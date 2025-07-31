@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 import itertools
 
 import cards
 
 
 class PropertySet:
-    def __init__(self, colour: cards.PropertyColour, required_count: int):
+    def __init__(
+        self,
+        colour: cards.PropertyColour,
+        required_count: int,
+    ) -> None:
         self.colour = colour
         self.required_count = required_count
         self.cards: list[cards.PropertyCard] = []
@@ -37,7 +43,7 @@ class PropertySet:
 
 
 class Player:
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         self.name = name
         self.hand: list[cards.Card] = []
         self.properties: dict[cards.PropertyColour, PropertySet] = (
@@ -77,7 +83,8 @@ class Player:
         return sum(card.value for card in self.bank)
 
     def properties_to_list(
-        self, without_full_sets: bool = False
+        self,
+        without_full_sets: bool = False,
     ) -> list[cards.PropertyCard]:
         result = []
         for property_set in self.properties.values():
@@ -87,16 +94,12 @@ class Player:
         return result
 
     def get_card_in_hand(self, i: int) -> cards.Card:
-        """
-        Get a card from the player's hand by index.
-        """
+        """Get a card from the player's hand by index."""
         assert 0 <= i < len(self.hand), "Index out of range for hand"
         return self.hand[i]
 
     def remove_card_from_hand(self, card: cards.Card) -> None:
-        """
-        Remove a card from the player's hand.
-        """
+        """Remove a card from the player's hand."""
         assert card in self.hand, "Card not found in hand"
         self.hand.remove(card)
 
@@ -107,22 +110,22 @@ class Player:
             elif isinstance(card, (cards.MoneyCard, cards.ActionCard)):
                 self.add_to_bank(card)
             else:
-                raise ValueError(f"Unknown card type: {type(card)}")
+                msg = f"Unknown card type: {type(card)}"
+                raise TypeError(msg)
 
     def remove_property(self, card: cards.PropertyCard) -> None:
         self.properties[card.colour].remove(card)
 
     def charge_money_payment(
-        self, amount: int
+        self,
+        amount: int,
     ) -> tuple[list[cards.MoneyCard | cards.ActionCard], int]:
-        """
-        Find the optimal set of cards to minimize overpayment.
-        """
+        """Find the optimal set of cards to minimize overpayment."""
         bank_cards = list(self.bank)
         n = len(bank_cards)
         best_combo = None
         best_total = None
-        for r in range(0, n):
+        for r in range(n):
             for combo in itertools.combinations(bank_cards, r + 1):
                 total = sum(card.value for card in combo)
                 if total >= amount and (
@@ -139,8 +142,8 @@ class Player:
         return bank_cards, max(0, amount - total)
 
     def has_won(self) -> bool:
-        """
-        Returns True if the player has at least three complete property sets.
+        """Returns True if the player has at least three complete property
+        sets.
         """
         complete_sets = sum(
             1 for prop_set in self.properties.values() if prop_set.is_complete()
@@ -148,17 +151,13 @@ class Player:
         return complete_sets >= 3
 
     def has_complete_property_set(self) -> bool:
-        """
-        Returns True if the player has at least one complete property set.
-        """
+        """Returns True if the player has at least one complete property set."""
         return any(
             prop_set.is_complete() for prop_set in self.properties.values()
         )
 
     def n_properties(self, without_full_sets: bool = False) -> int:
-        """
-        Returns the total number of properties the player has.
-        """
+        """Returns the total number of properties the player has."""
         if without_full_sets:
             return sum(
                 len(prop_set.cards)
@@ -168,8 +167,7 @@ class Player:
         return sum(len(prop_set.cards) for prop_set in self.properties.values())
 
     def has_properties(self, without_full_sets: bool = False) -> bool:
-        """
-        Returns True if the player has any properties.
+        """Returns True if the player has any properties.
         If `without_full_sets` is True, it only counts properties
         that are not part of a complete set.
         """

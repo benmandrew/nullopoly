@@ -16,7 +16,7 @@ class RedrawData:
 
 class Window:
 
-    def __init__(self, stdscr: curses.window, n_players: int):
+    def __init__(self, stdscr: curses.window, n_players: int) -> None:
         self.stdscr = stdscr
         self.stdscr.nodelay(True)
         self.stdscr.keypad(True)
@@ -38,10 +38,17 @@ class Window:
             0,
         )
         self.hand = hand.Hand(
-            self.stdscr, height - half_height, width, half_height, 0
+            self.stdscr,
+            height - half_height,
+            width,
+            half_height,
+            0,
         )
         self.table = table.Table(
-            self.stdscr, self.n_players, half_height - log.LOG_HEIGHT, width
+            self.stdscr,
+            self.n_players,
+            half_height - log.LOG_HEIGHT,
+            width,
         )
 
     def draw(

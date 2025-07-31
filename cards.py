@@ -77,7 +77,7 @@ type Card = "ActionCard | PropertyCard | MoneyCard"
 
 
 class PropertyCard:
-    def __init__(self, name: str, value: int, colour: PropertyColour):
+    def __init__(self, name: str, value: int, colour: PropertyColour) -> None:
         self.name = name
         self.value = value
         self.colour = colour
@@ -99,7 +99,7 @@ class PropertyCard:
 
 
 class ActionCard:
-    def __init__(self, name: str, value: int, action: ActionType):
+    def __init__(self, name: str, value: int, action: ActionType) -> None:
         self.name = name
         self.value = value
         self.action = action
@@ -125,7 +125,7 @@ class ActionCard:
 
 
 class MoneyCard:
-    def __init__(self, value: int):
+    def __init__(self, value: int) -> None:
         self.value = value
 
     def pretty(self) -> str:

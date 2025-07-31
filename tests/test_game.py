@@ -1,10 +1,9 @@
 import unittest
 from unittest.mock import Mock, patch
 
-import utils
-
 import cards
 import game
+from tests import utils
 
 
 class TestGameStart(unittest.TestCase):
@@ -25,20 +24,20 @@ class TestPayments(unittest.TestCase):
         self.player = self.g.get_player("TestPlayer")
         self.player.add_to_bank(cards.MoneyCard(5))
         self.player.add_to_bank(
-            cards.ActionCard("DummyAction", 3, cards.ActionType.PASS_GO)
+            cards.ActionCard("DummyAction", 3, cards.ActionType.PASS_GO),
         )
         self.player.add_property(
-            cards.PropertyCard("Property1", 2, cards.PropertyColour.RED)
+            cards.PropertyCard("Property1", 2, cards.PropertyColour.RED),
         )
         self.player.add_property(
-            cards.PropertyCard("Property2", 2, cards.PropertyColour.RED)
+            cards.PropertyCard("Property2", 2, cards.PropertyColour.RED),
         )
 
     def test_get_payment_1(self) -> None:
         with patch.object(self.g.win, "get_number_input", side_effect=[]):
             money, properties = self.g.get_payment(self.player, 5)
             charged_cards = utils.strip_and_join(
-                cards.fmt_cards_side_by_side(money + properties)
+                cards.fmt_cards_side_by_side(money + properties),
             )
             self.assertMultiLineEqual(
                 charged_cards,
@@ -50,7 +49,7 @@ class TestPayments(unittest.TestCase):
                 │       │
                 │ £5    │
                 └───────┘
-            """
+            """,
                 ),
             )
             self.assertEqual(self.player.total_bank_value(), 3)
@@ -60,7 +59,7 @@ class TestPayments(unittest.TestCase):
         with patch.object(self.g.win, "get_number_input", side_effect=[1]):
             money, properties = self.g.get_payment(self.player, 10)
             charged_cards = utils.strip_and_join(
-                cards.fmt_cards_side_by_side(money + properties)
+                cards.fmt_cards_side_by_side(money + properties),
             )
             self.assertMultiLineEqual(
                 charged_cards,
@@ -72,7 +71,7 @@ class TestPayments(unittest.TestCase):
                 │       ││         ││ Red       │
                 │ £5    ││ £3      ││ £2        │
                 └───────┘└─────────┘└───────────┘
-            """
+            """,
                 ),
             )
             self.assertEqual(self.player.total_bank_value(), 0)
@@ -82,7 +81,7 @@ class TestPayments(unittest.TestCase):
         with patch.object(self.g.win, "get_number_input", side_effect=[1, 1]):
             money, properties = self.g.get_payment(self.player, 20)
             charged_cards = utils.strip_and_join(
-                cards.fmt_cards_side_by_side(money + properties)
+                cards.fmt_cards_side_by_side(money + properties),
             )
             self.assertMultiLineEqual(
                 charged_cards,
@@ -94,7 +93,7 @@ class TestPayments(unittest.TestCase):
                     │       ││         ││ Red       ││ Red       │
                     │ £5    ││ £3      ││ £2        ││ £2        │
                     └───────┘└─────────┘└───────────┘└───────────┘
-                """
+                """,
                 ),
             )
             self.assertEqual(self.player.total_bank_value(), 0)
@@ -116,17 +115,19 @@ class TestGameWinCondition(unittest.TestCase):
         # Complete three sets for P1
         for _ in range(2):
             self.p1.add_property(
-                cards.PropertyCard("Brown", 1, cards.PropertyColour.BROWN)
+                cards.PropertyCard("Brown", 1, cards.PropertyColour.BROWN),
             )
         for _ in range(3):
             self.p1.add_property(
-                cards.PropertyCard("Red", 1, cards.PropertyColour.RED)
+                cards.PropertyCard("Red", 1, cards.PropertyColour.RED),
             )
         for _ in range(2):
             self.p1.add_property(
                 cards.PropertyCard(
-                    "Dark Blue", 1, cards.PropertyColour.DARK_BLUE
-                )
+                    "Dark Blue",
+                    1,
+                    cards.PropertyColour.DARK_BLUE,
+                ),
             )
         self.assertTrue(self.g.check_win())
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import curses
 import queue
 
@@ -11,8 +13,13 @@ CARD_HEIGHT = 5
 class Hand:
 
     def __init__(
-        self, stdscr: curses.window, height: int, width: int, y: int, x: int
-    ):
+        self,
+        stdscr: curses.window,
+        height: int,
+        width: int,
+        y: int,
+        x: int,
+    ) -> None:
         self.win = stdscr.subwin(height, width, y, x)
 
     def clear(self) -> None:
@@ -44,8 +51,7 @@ class Hand:
         self.win.refresh()
 
     def draw_card(self, card: cards.Card, y: int, x: int) -> int:
-        """
-        Draws a card in the hand window at the specified position.
+        """Draws a card in the hand window at the specified position.
         Returns the new x position after drawing the card.
         """
         if isinstance(card, cards.ActionCard):
@@ -54,7 +60,8 @@ class Hand:
             return self.draw_property_card(card, y, x)
         if isinstance(card, cards.MoneyCard):
             return self.draw_money_card(card, y, x)
-        raise ValueError(f"Unknown card type: {type(card)}")
+        msg = f"Unknown card type: {type(card)}"
+        raise TypeError(msg)
 
     def draw_box(self, y: int, x: int, height: int, width: int) -> None:
         self.win.addch(y, x, curses.ACS_ULCORNER)
@@ -67,7 +74,10 @@ class Hand:
         self.win.addch(y + height - 1, x + width - 1, curses.ACS_LRCORNER)
 
     def draw_rent_wild_content(
-        self, y: int, x: int, card: cards.ActionCard
+        self,
+        y: int,
+        x: int,
+        card: cards.ActionCard,
     ) -> None:
         assert (
             card.action == cards.ActionType.RENT_WILD
@@ -96,7 +106,7 @@ class Hand:
             x + 3,
             "d",
             curses.color_pair(
-                common.COLOUR_MAP[cards.PropertyColour.LIGHT_BLUE]
+                common.COLOUR_MAP[cards.PropertyColour.LIGHT_BLUE],
             ),
         )
         self.win.addstr(y + 2, x, f"£{card.value}")
@@ -127,8 +137,7 @@ class Hand:
         self.win.addstr(y + 2, x, f"£{card.value}")
 
     def draw_action_card(self, card: cards.ActionCard, y: int, x: int) -> int:
-        """
-        Draws an action card in the hand window at the specified position.
+        """Draws an action card in the hand window at the specified position.
         Returns the new x position after drawing the card.
         """
         action_str = card.action.pretty()
@@ -147,10 +156,12 @@ class Hand:
         return x + width + 1
 
     def draw_property_card(
-        self, card: cards.PropertyCard, y: int, x: int
+        self,
+        card: cards.PropertyCard,
+        y: int,
+        x: int,
     ) -> int:
-        """
-        Draws a property card in the hand window at the specified position.
+        """Draws a property card in the hand window at the specified position.
         Returns the new x position after drawing the card.
         """
         colour_str = card.colour.pretty()
@@ -168,8 +179,7 @@ class Hand:
         return x + width + 1
 
     def draw_money_card(self, card: cards.MoneyCard, y: int, x: int) -> int:
-        """
-        Draws a money card in the hand window at the specified position.
+        """Draws a money card in the hand window at the specified position.
         Returns the new x position after drawing the card.
         """
         lines = ["Money", f"£{card.value}"]
@@ -187,7 +197,9 @@ class Hand:
         self.win.refresh()
 
     def draw_target_player_dialog(
-        self, players: list[player.Player], exclude: player.Player | None = None
+        self,
+        players: list[player.Player],
+        exclude: player.Player | None = None,
     ) -> None:
         self.clear()
         self.win.addstr(2, 2, "Choose a player to target:")
@@ -200,12 +212,14 @@ class Hand:
         self.win.refresh()
 
     def draw_target_property_dialog(
-        self, target: player.Player, without_full_sets: bool = False
+        self,
+        target: player.Player,
+        without_full_sets: bool = False,
     ) -> None:
         self.clear()
         self.win.addstr(2, 2, f"Choose a property from {target.name}:")
         properties = target.properties_to_list(
-            without_full_sets=without_full_sets
+            without_full_sets=without_full_sets,
         )
         for i, prop in enumerate(properties):
             prop_name = f"{prop.name} ({prop.colour.pretty()}) (£{prop.value})"
@@ -229,18 +243,23 @@ class Hand:
         self.win.refresh()
 
     def draw_rent_colour_choice(
-        self, colours: list[tuple[cards.PropertyColour, int]]
+        self,
+        colours: list[tuple[cards.PropertyColour, int]],
     ) -> None:
         self.clear()
         self.win.addstr(2, 2, "Choose a colour to charge rent on:")
         for idx, (colour, rent) in enumerate(colours):
             self.win.addstr(
-                3 + idx, 2, f"{idx + 1}. {colour.pretty()} (£{rent})"
+                3 + idx,
+                2,
+                f"{idx + 1}. {colour.pretty()} (£{rent})",
             )
         self.win.refresh()
 
     def turn_over(
-        self, input_queue: queue.Queue[str], next_player_name: str
+        self,
+        input_queue: queue.Queue[str],
+        next_player_name: str,
     ) -> None:
         self.clear()
         self.win.addstr(2, 2, f"Next player: {next_player_name}", curses.A_BOLD)

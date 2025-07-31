@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import curses
 import signal
 import sys
@@ -8,9 +10,7 @@ from window import common, window
 
 
 class WonError(Exception):
-    """
-    Raised when a player has won the game.
-    """
+    """Raised when a player has won the game."""
 
 
 def game_loop(g: game.Game) -> game.Game:
@@ -29,7 +29,7 @@ def game_loop(g: game.Game) -> game.Game:
         if not current_player.hand:
             g.deal_from_empty(current_player)
         if g.check_win():
-            raise WonError()
+            raise WonError
     g.draw(n_cards_played)
     return g
 
