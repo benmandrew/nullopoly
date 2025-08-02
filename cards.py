@@ -33,7 +33,6 @@ PROPERTY_RENTS: dict[PropertyColour, list[int]] = {
 
 class ActionType(Enum):
     DEAL_BREAKER = "deal_breaker"
-    JUST_SAY_NO = "just_say_no"
     SLY_DEAL = "sly_deal"
     FORCED_DEAL = "forced_deal"
     DEBT_COLLECTOR = "debt_collector"

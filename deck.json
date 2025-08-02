@@ -32,9 +32,6 @@
     "action": [
         {"name": "Deal Breaker", "value": 5, "action": "deal_breaker"},
         {"name": "Deal Breaker", "value": 5, "action": "deal_breaker"},
-        {"name": "Just Say No", "value": 4, "action": "just_say_no"},
-        {"name": "Just Say No", "value": 4, "action": "just_say_no"},
-        {"name": "Just Say No", "value": 4, "action": "just_say_no"},
         {"name": "Sly Deal", "value": 3, "action": "sly_deal"},
         {"name": "Sly Deal", "value": 3, "action": "sly_deal"},
         {"name": "Sly Deal", "value": 3, "action": "sly_deal"},
