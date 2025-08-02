@@ -30,7 +30,7 @@ class TestPayments(unittest.TestCase):
         ]
         self.g = game.Game(players, [], starting_cards=0)
         self.g.start()
-        self.player = self.g.get_player("TestPlayer")
+        self.player = self.g.get_player_by_name("TestPlayer")
         self.player.add_to_bank(cards.MoneyCard(5))
         self.player.add_to_bank(
             cards.ActionCard("DummyAction", 3, cards.ActionType.PASS_GO),
@@ -130,8 +130,8 @@ class TestGameWinCondition(unittest.TestCase):
         ]
         self.g = game.Game(players, [], starting_cards=0)
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
 
     def test_no_player_has_won(self) -> None:
         self.assertFalse(self.g.check_win())

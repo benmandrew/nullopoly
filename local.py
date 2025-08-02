@@ -7,7 +7,7 @@ from types import FrameType
 
 import game
 import player
-from interaction import local
+from interaction import ai, local
 from window import common
 
 
@@ -32,14 +32,25 @@ def game_loop(g: game.Game) -> game.Game:
     return g
 
 
+def set_ai_game_instances(players: list[player.Player], g: game.Game) -> None:
+    for p in players:
+        if isinstance(p.inter, ai.AIInteraction):
+            p.inter.set_game_instance(g)
+
+
 def run_game(stdscr: curses.window) -> None:
-    player_names = ["Alice", "Bob"]
-    local_interaction = local.LocalInteraction(
-        stdscr,
-        n_players=len(player_names),
-    )
-    players = [player.Player(name, local_interaction) for name in player_names]
+    players = [
+        player.Player(
+            "Ben",
+            local.LocalInteraction(
+                stdscr,
+                n_players=2,
+            ),
+        ),
+        player.Player("AI", ai.AIInteraction(1)),
+    ]
     g = game.Game(players, deck="deck.json")
+    set_ai_game_instances(players, g)
     g.start()
     while True:
         try:

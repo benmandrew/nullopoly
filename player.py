@@ -44,7 +44,11 @@ class PropertySet:
 
 
 class Player:
+    global_index = 0
+
     def __init__(self, name: str, inter: interaction.Interaction) -> None:
+        self.index = Player.global_index
+        Player.global_index += 1
         self.name = name
         self.inter = inter
         self.hand: list[cards.Card] = []
@@ -52,6 +56,14 @@ class Player:
             self.empty_property_sets()
         )
         self.bank: list[cards.MoneyCard | cards.ActionCard] = []
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Player):
+            return False
+        return self.index == other.index
+
+    def __hash__(self) -> int:
+        return hash(self.index)
 
     @classmethod
     def empty_property_sets(cls) -> dict[cards.PropertyColour, PropertySet]:
@@ -94,6 +106,16 @@ class Player:
                 continue
             result.extend(property_set.cards)
         return result
+
+    def owned_colours_with_rents(
+        self,
+        colour_options: list[cards.PropertyColour],
+    ) -> list[tuple[cards.PropertyColour, int]]:
+        return [
+            (c, self.properties[c].rent())
+            for c in colour_options
+            if self.properties[c].cards
+        ]
 
     def get_card_in_hand(self, i: int) -> cards.Card:
         """Get a card from the player's hand by index."""

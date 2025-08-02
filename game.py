@@ -58,12 +58,18 @@ class Game:
         self.next_player()
         finished_player.inter.notify_turn_over(self.current_player().name)
 
-    def get_player(self, name: str) -> player.Player:
+    def get_player_by_name(self, name: str) -> player.Player:
         for p in self.players:
             if p.name == name:
                 return p
         msg = f"Player '{name}' not found"
         raise ValueError(msg)
+
+    def get_player_by_idx(self, idx: int) -> player.Player:
+        if idx < 0 or idx >= len(self.players):
+            msg = f"Player index {idx} out of range"
+            raise IndexError(msg)
+        return self.players[idx]
 
     def add_card_to_deck(self, card: cards.Card) -> None:
         self.deck.append(card)
@@ -152,11 +158,9 @@ class Game:
             card.action in cards.RENT_CARD_COLOURS
         ), f"Not a rent card: {card.action}"
         colour_options = cards.RENT_CARD_COLOURS[card.action]
-        owned_colours_with_rents = [
-            (c, p.properties[c].rent())
-            for c in colour_options
-            if p.properties[c].cards
-        ]
+        owned_colours_with_rents = p.owned_colours_with_rents(
+            colour_options,
+        )
         if not owned_colours_with_rents:
             p.inter.log(
                 "You do not own any properties of the required colours",

@@ -10,9 +10,9 @@ if TYPE_CHECKING:
 class Interaction(ABC):
     """Base class for player interactions."""
 
-    @abstractmethod
-    def __init__(self) -> None:
-        pass
+    # @abstractmethod
+    # def __init__(self) -> None:
+    #     pass
 
     @abstractmethod
     def choose_card_in_hand(self, p: "player.Player") -> cards.Card:

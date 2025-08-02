@@ -22,9 +22,9 @@ class TestActionCards(unittest.TestCase):
             starting_cards=0,
         )
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
-        self.p3 = self.g.get_player("P3")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
+        self.p3 = self.g.get_player_by_name("P3")
 
     def test_debt_collector(self) -> None:
         action_card = cards.ActionCard(
@@ -110,9 +110,9 @@ class TestRentCards(unittest.TestCase):
             starting_cards=0,
         )
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
-        self.p3 = self.g.get_player("P3")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
+        self.p3 = self.g.get_player_by_name("P3")
         # Give P1 properties in two colours
         self.p1.add_property(
             cards.PropertyCard("Brown1", 1, cards.PropertyColour.BROWN),
@@ -234,8 +234,8 @@ class TestDealBreaker(unittest.TestCase):
         ]
         self.g = game.Game(players, [], starting_cards=0)
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
         for _ in range(2):
             self.p2.add_property(
                 cards.PropertyCard("Brown", 1, cards.PropertyColour.BROWN),
@@ -317,8 +317,8 @@ class TestSlyDeal(unittest.TestCase):
         ]
         self.g = game.Game(players, [], starting_cards=0)
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
         self.p2.add_property(
             cards.PropertyCard("Red", 1, cards.PropertyColour.RED),
         )
@@ -361,8 +361,8 @@ class TestForcedDeal(unittest.TestCase):
         ]
         self.g = game.Game(players, [], starting_cards=0)
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
         self.p1.add_property(
             cards.PropertyCard("Red", 1, cards.PropertyColour.RED),
         )
