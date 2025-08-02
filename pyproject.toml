@@ -61,3 +61,8 @@ max-line-length = 80
 [tool.mypy]
 ignore_missing_imports = true
 strict = true
+
+[tool.bandit]
+skips = [
+    "B101",  # assert used
+]

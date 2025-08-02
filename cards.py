@@ -44,7 +44,7 @@ class ActionType(Enum):
     RENT_RED_YELLOW = "rent_red_yellow"
     RENT_GREEN_DARK_BLUE = "rent_green_dark_blue"
     RENT_RAILROAD_UTILITY = "rent_railroad_utility"
-    PASS_GO = "pass_go"
+    PASS_GO = "pass_go"  # nosec
 
     def pretty(self) -> str:
         return self.name.replace("_", " ").title()
