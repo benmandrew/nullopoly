@@ -66,10 +66,11 @@ class Game:
         raise ValueError(msg)
 
     def get_player_by_idx(self, idx: int) -> player.Player:
-        if idx < 0 or idx >= len(self.players):
-            msg = f"Player index {idx} out of range"
-            raise IndexError(msg)
-        return self.players[idx]
+        for p in self.players:
+            if p.index == idx:
+                return p
+        msg = f"Player with index {idx} not found"
+        raise IndexError(msg)
 
     def add_card_to_deck(self, card: cards.Card) -> None:
         self.deck.append(card)

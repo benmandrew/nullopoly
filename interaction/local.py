@@ -26,6 +26,7 @@ class LocalInteraction(interaction.Interaction):
         if not full_sets:
             msg = "Target player does not have a full set of properties"
             raise common.InvalidChoiceError(msg)
+        self.win.hand.draw_target_full_set_dialog(target)
         choice = self.win.get_number_input(1, len(full_sets))
         return full_sets[choice - 1]
 

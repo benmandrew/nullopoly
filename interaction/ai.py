@@ -7,7 +7,24 @@ from dataclasses import dataclass
 import cards
 import game
 import player
-from interaction import interaction
+from interaction import dummy, interaction
+
+
+def copy_game(g: game.Game, me: player.Player) -> game.Game:
+    """Deep copy the game."""
+    original_inters = [p.inter for p in g.players]
+    try:
+        # Temporarily replace with dummy to avoid
+        # deepcopying unpicklable objects
+        for p in g.players:
+            if p == me:
+                continue
+            p.inter = dummy.DummyInteraction()
+        g_copy = deepcopy(g)
+    finally:
+        for p, orig in zip(g.players, original_inters):
+            p.inter = orig
+    return g_copy
 
 
 @dataclass(frozen=True)
@@ -98,9 +115,10 @@ class Planner:
     def choose_plan(self, hand: list[cards.Card]) -> None:
         # AI chooses the best plan based on the current hand
         all_plans = [self.generate_plans(card) for card in hand]
-        assert all_plans, "No plans generated from hand"
+        flat = list(itertools.chain(*all_plans))
+        assert flat, "No plans generated from hand"
         self.plan = max(
-            list(itertools.chain(*all_plans)),
+            flat,
             key=self.plan_value_if_played,
         )
 
@@ -151,6 +169,10 @@ class Planner:
             return [GeneralActionPlan(card)]
         if cards.is_rent_action(card.action):
             return self.generate_rent_plans(card, other_players)
+        if card.action == cards.ActionType.DEBT_COLLECTOR:
+            return [
+                TargetedActionPlan(card, target) for target in other_players
+            ]
         if card.action == cards.ActionType.SLY_DEAL:
             return [
                 SlyDealPlan(card, target, target_property)
@@ -192,7 +214,7 @@ class Planner:
 
     def plan_value_if_played(self, plan: Plan) -> int:
         """Compute the value of the game state if the given plan is played."""
-        g_copy = deepcopy(self.g)
+        g_copy = copy_game(self.g, self.p)
         p = g_copy.get_player_by_idx(self.p.index)
         if isinstance(plan, (PropertyPlan, MoneyPlan, ActionPlan)):
             g_copy.play_card(plan.card, p)
@@ -245,6 +267,8 @@ class AIInteraction(interaction.Interaction):
             without_full_sets=without_full_sets,
         )
         assert properties, "No properties available to choose from"
+        if target == self:
+            return min(properties, key=lambda prop: prop.value)
         return max(properties, key=lambda prop: prop.value)
 
     def choose_player_target(
@@ -263,9 +287,11 @@ class AIInteraction(interaction.Interaction):
         owned_colours_with_rents: list[tuple[cards.PropertyColour, int]],
     ) -> tuple[cards.PropertyColour, int]:
         # AI logic to choose a colour and amount for rent
-        if owned_colours_with_rents:
-            return owned_colours_with_rents[0]
-        return (cards.PropertyColour.RED, 0)
+        assert owned_colours_with_rents, "No owned colours with rents"
+        return max(
+            owned_colours_with_rents,
+            key=lambda x: x[1],
+        )
 
     def log(self, message: str) -> None:
         # AI does not log messages
