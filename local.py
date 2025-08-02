@@ -60,15 +60,23 @@ def run_game(stdscr: curses.window) -> None:
         g.end_turn()
 
 
+def curses_exit() -> None:
+    curses.curs_set(1)  # Show the cursor again
+    curses.endwin()
+
+
 def curses_main(stdscr: curses.window) -> None:
     curses.start_color()
     curses.curs_set(0)  # Hide the cursor
-    run_game(stdscr)
-    curses.endwin()
+    try:
+        run_game(stdscr)
+    except Exception:
+        curses_exit()
+        raise
 
 
 def signal_handler(_sig: int, _frame: FrameType | None) -> None:
-    curses.endwin()
+    curses_exit()
     sys.exit(0)
 
 
