@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 
 import cards
+from interaction import interaction
 
 
 class PropertySet:
@@ -43,13 +44,26 @@ class PropertySet:
 
 
 class Player:
-    def __init__(self, name: str) -> None:
+    global_index = 0
+
+    def __init__(self, name: str, inter: interaction.Interaction) -> None:
+        self.index = Player.global_index
+        Player.global_index += 1
         self.name = name
+        self.inter = inter
         self.hand: list[cards.Card] = []
         self.properties: dict[cards.PropertyColour, PropertySet] = (
             self.empty_property_sets()
         )
         self.bank: list[cards.MoneyCard | cards.ActionCard] = []
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Player):
+            return False
+        return self.index == other.index
+
+    def __hash__(self) -> int:
+        return hash(self.index)
 
     @classmethod
     def empty_property_sets(cls) -> dict[cards.PropertyColour, PropertySet]:
@@ -92,6 +106,16 @@ class Player:
                 continue
             result.extend(property_set.cards)
         return result
+
+    def owned_colours_with_rents(
+        self,
+        colour_options: list[cards.PropertyColour],
+    ) -> list[tuple[cards.PropertyColour, int]]:
+        return [
+            (c, self.properties[c].rent())
+            for c in colour_options
+            if self.properties[c].cards
+        ]
 
     def get_card_in_hand(self, i: int) -> cards.Card:
         """Get a card from the player's hand by index."""
@@ -182,3 +206,11 @@ class Player:
 
     def fmt_hand(self) -> list[str]:
         return cards.fmt_cards_side_by_side(self.hand)
+
+    def choose_player_target(
+        self,
+        players: list[Player],
+    ) -> Player:
+        """Choose a player from the list of players, excluding self."""
+        players = [p for p in players if p != self]
+        return self.inter.choose_player_target(players)

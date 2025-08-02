@@ -6,11 +6,9 @@ import sys
 from types import FrameType
 
 import game
-from window import common, window
-
-
-class WonError(Exception):
-    """Raised when a player has won the game."""
+import player
+from interaction import ai, local
+from window import common
 
 
 def game_loop(g: game.Game) -> game.Game:
@@ -20,7 +18,7 @@ def game_loop(g: game.Game) -> game.Game:
     while n_cards_played < 3:
         g.draw(n_cards_played)
         try:
-            c = g.get_card_choice(current_player)
+            c = g.choose_card_in_hand(current_player)
             g.play_card(c, current_player)
         except common.InvalidChoiceError:
             continue
@@ -29,35 +27,56 @@ def game_loop(g: game.Game) -> game.Game:
         if not current_player.hand:
             g.deal_from_empty(current_player)
         if g.check_win():
-            raise WonError
+            raise game.WonError
     g.draw(n_cards_played)
     return g
 
 
-def run_game(stdscr: curses.window) -> game.Game:
-    players = ["Alice", "Bob"]
-    win = window.Window(stdscr, n_players=len(players))
-    g = game.Game(players, deck="deck.json", win=win)
+def set_ai_game_instances(players: list[player.Player], g: game.Game) -> None:
+    for p in players:
+        if isinstance(p.inter, ai.AIInteraction):
+            p.inter.set_game_instance(g)
+
+
+def run_game(stdscr: curses.window) -> None:
+    players = [
+        player.Player(
+            "Ben",
+            local.LocalInteraction(
+                stdscr,
+                n_players=2,
+            ),
+        ),
+        player.Player("AI", ai.AIInteraction(1)),
+    ]
+    g = game.Game(players, deck="deck.json")
+    set_ai_game_instances(players, g)
     g.start()
     while True:
         try:
             g = game_loop(g)
-        except WonError:
+        except game.WonError:
             break
         g.end_turn()
-    g.win.game_over()
-    return g
+
+
+def curses_exit() -> None:
+    curses.curs_set(1)  # Show the cursor again
+    curses.endwin()
 
 
 def curses_main(stdscr: curses.window) -> None:
     curses.start_color()
     curses.curs_set(0)  # Hide the cursor
-    run_game(stdscr)
-    curses.endwin()
+    try:
+        run_game(stdscr)
+    except Exception:
+        curses_exit()
+        raise
 
 
 def signal_handler(_sig: int, _frame: FrameType | None) -> None:
-    curses.endwin()
+    curses_exit()
     sys.exit(0)
 
 

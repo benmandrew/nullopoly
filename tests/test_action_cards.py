@@ -4,23 +4,27 @@ from unittest.mock import Mock, patch
 
 import cards
 import game
+import player
 from tests import utils
 from window import common
 
 
 class TestActionCards(unittest.TestCase):
     def setUp(self) -> None:
-        self.mock_window = Mock()
+        self.mock_interaction = Mock()
+        players = [
+            player.Player(name, self.mock_interaction)
+            for name in ["P1", "P2", "P3"]
+        ]
         self.g = game.Game(
-            ["P1", "P2", "P3"],
+            players,
             [],
-            self.mock_window,
             starting_cards=0,
         )
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
-        self.p3 = self.g.get_player("P3")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
+        self.p3 = self.g.get_player_by_name("P3")
 
     def test_debt_collector(self) -> None:
         action_card = cards.ActionCard(
@@ -32,10 +36,10 @@ class TestActionCards(unittest.TestCase):
         self.p2.add_to_bank(cards.MoneyCard(3))
         self.p2.add_to_bank(cards.MoneyCard(1))
         with patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_player_target",
             return_value=self.p2,
-        ), patch.object(self.g.win, "get_number_input", return_value=1):
+        ):
             self.g.play_action_card(action_card, self.p1)
         self.assertEqual(self.p1.total_bank_value(), 6)
         self.assertEqual(self.p2.total_bank_value(), 1)
@@ -50,12 +54,15 @@ class TestActionCards(unittest.TestCase):
         self.p2.add_to_bank(cards.MoneyCard(10))
         self.p2.add_to_bank(cards.MoneyCard(1))
         self.p2.add_property(
-            cards.PropertyCard("Prop", 2, cards.PropertyColour.RED),
+            cards.PropertyCard("Prop1", 2, cards.PropertyColour.RED),
         )
-        self.p3.add_property(
-            cards.PropertyCard("Prop", 2, cards.PropertyColour.RED),
-        )
-        with patch.object(self.g.win, "get_number_input", return_value=1):
+        property2 = cards.PropertyCard("Prop2", 2, cards.PropertyColour.RED)
+        self.p3.add_property(property2)
+        with patch.object(
+            self.mock_interaction,
+            "choose_property_source",
+            return_value=property2,
+        ):
             self.g.play_action_card(action_card, self.p1)
             self.assertEqual(self.p2.total_bank_value(), 1)
             self.assertEqual(self.p3.total_bank_value(), 0)
@@ -71,11 +78,11 @@ class TestActionCards(unittest.TestCase):
                 utils.format_expect(
                     """
                     1.
-                    ┌──────┐
-                    │ Prop │
-                    │ Red  │
-                    │ £2   │
-                    └──────┘
+                    ┌───────┐
+                    │ Prop2 │
+                    │ Red   │
+                    │ £2    │
+                    └───────┘
                 """,
                 ),
             )
@@ -92,17 +99,20 @@ class TestActionCards(unittest.TestCase):
 
 class TestRentCards(unittest.TestCase):
     def setUp(self) -> None:
-        self.mock_window = Mock()
+        self.mock_interaction = Mock()
+        players = [
+            player.Player(name, self.mock_interaction)
+            for name in ["P1", "P2", "P3"]
+        ]
         self.g = game.Game(
-            ["P1", "P2", "P3"],
+            players,
             [],
-            self.mock_window,
             starting_cards=0,
         )
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
-        self.p3 = self.g.get_player("P3")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
+        self.p3 = self.g.get_player_by_name("P3")
         # Give P1 properties in two colours
         self.p1.add_property(
             cards.PropertyCard("Brown1", 1, cards.PropertyColour.BROWN),
@@ -133,8 +143,14 @@ class TestRentCards(unittest.TestCase):
             1,
             cards.ActionType.RENT_BROWN_LIGHT_BLUE,
         )
-        # Patch rent colour choice to select BROWN (index 1)
-        with patch.object(self.g.win, "get_number_input", return_value=1):
+        with patch.object(
+            self.mock_interaction,
+            "choose_rent_colour_and_amount",
+            return_value=(
+                cards.PropertyColour.BROWN,
+                cards.PROPERTY_RENTS[cards.PropertyColour.BROWN][0],
+            ),
+        ):
             self.g.play_rent_card(rent_card, self.p1)
         # Brown rent for 1 property is 1
         self.assertEqual(self.p1.total_bank_value(), 2)
@@ -147,7 +163,14 @@ class TestRentCards(unittest.TestCase):
             1,
             cards.ActionType.RENT_BROWN_LIGHT_BLUE,
         )
-        with patch.object(self.g.win, "get_number_input", return_value=2):
+        with patch.object(
+            self.mock_interaction,
+            "choose_rent_colour_and_amount",
+            return_value=(
+                cards.PropertyColour.LIGHT_BLUE,
+                cards.PROPERTY_RENTS[cards.PropertyColour.LIGHT_BLUE][1],
+            ),
+        ):
             self.g.play_rent_card(rent_card, self.p1)
         # Light Blue rent for 2 properties is 2
         self.assertEqual(self.p1.total_bank_value(), 4)
@@ -164,7 +187,14 @@ class TestRentCards(unittest.TestCase):
             1,
             cards.ActionType.RENT_GREEN_DARK_BLUE,
         )
-        with patch.object(self.g.win, "get_number_input", return_value=2):
+        with patch.object(
+            self.mock_interaction,
+            "choose_rent_colour_and_amount",
+            return_value=(
+                cards.PropertyColour.DARK_BLUE,
+                cards.PROPERTY_RENTS[cards.PropertyColour.DARK_BLUE][0],
+            ),
+        ):
             self.g.play_rent_card(rent_card, self.p1)
         # Dark Blue rent for 1 property is 3
         self.assertEqual(self.p1.total_bank_value(), 6)
@@ -177,9 +207,20 @@ class TestRentCards(unittest.TestCase):
         )
         self.p2.add_to_bank(cards.MoneyCard(2))
         rent_card = cards.ActionCard("Rent Wild", 1, cards.ActionType.RENT_WILD)
-        with patch.object(self.g.win, "get_number_input", side_effect=[2, 1]):
+        with patch.object(
+            self.mock_interaction,
+            "choose_rent_colour_and_amount",
+            return_value=(
+                cards.PropertyColour.GREEN,
+                cards.PROPERTY_RENTS[cards.PropertyColour.GREEN][0],
+            ),
+        ), patch.object(
+            self.mock_interaction,
+            "choose_player_target",
+            return_value=self.p2,
+        ):
             self.g.play_rent_card(rent_card, self.p1)
-        # Green rent for 1 property is 2
+        # Green rent for 1 property is 2, target is P2
         self.assertEqual(self.p1.total_bank_value(), 2)
         self.assertEqual(self.p2.total_bank_value(), 3)
         self.assertEqual(self.p3.total_bank_value(), 3)
@@ -187,11 +228,14 @@ class TestRentCards(unittest.TestCase):
 
 class TestDealBreaker(unittest.TestCase):
     def setUp(self) -> None:
-        self.mock_window = Mock()
-        self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
+        self.mock_interaction = Mock()
+        players = [
+            player.Player(name, self.mock_interaction) for name in ["P1", "P2"]
+        ]
+        self.g = game.Game(players, [], starting_cards=0)
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
         for _ in range(2):
             self.p2.add_property(
                 cards.PropertyCard("Brown", 1, cards.PropertyColour.BROWN),
@@ -203,11 +247,11 @@ class TestDealBreaker(unittest.TestCase):
 
     def test_deal_breaker(self) -> None:
         with patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_player_target",
             return_value=self.p2,
         ), patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_full_set_target",
             return_value=self.p2.properties[cards.PropertyColour.BROWN],
         ):
@@ -229,11 +273,11 @@ class TestDealBreaker(unittest.TestCase):
             3,
         )
         with patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_player_target",
             return_value=self.p1,
         ), patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_full_set_target",
             return_value=self.p1.properties[cards.PropertyColour.BROWN],
         ):
@@ -258,7 +302,7 @@ class TestDealBreaker(unittest.TestCase):
     def test_forced_deal_no_properties(self) -> None:
         self.p2.properties = self.p2.empty_property_sets()
         with patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_player_target",
             return_value=self.p2,
         ), self.assertRaises(common.InvalidChoiceError):
@@ -267,22 +311,25 @@ class TestDealBreaker(unittest.TestCase):
 
 class TestSlyDeal(unittest.TestCase):
     def setUp(self) -> None:
-        self.mock_window = Mock()
-        self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
+        self.mock_interaction = Mock()
+        players = [
+            player.Player(name, self.mock_interaction) for name in ["P1", "P2"]
+        ]
+        self.g = game.Game(players, [], starting_cards=0)
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
         self.p2.add_property(
             cards.PropertyCard("Red", 1, cards.PropertyColour.RED),
         )
 
     def test_sly_deal(self) -> None:
         with patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_player_target",
             return_value=self.p2,
         ), patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_property_target",
             return_value=self.p2.properties[cards.PropertyColour.RED].cards[0],
         ):
@@ -299,7 +346,7 @@ class TestSlyDeal(unittest.TestCase):
     def test_forced_deal_no_properties(self) -> None:
         self.p2.properties = self.p2.empty_property_sets()
         with patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_player_target",
             return_value=self.p2,
         ), self.assertRaises(common.InvalidChoiceError):
@@ -308,11 +355,14 @@ class TestSlyDeal(unittest.TestCase):
 
 class TestForcedDeal(unittest.TestCase):
     def setUp(self) -> None:
-        self.mock_window = Mock()
-        self.g = game.Game(["P1", "P2"], [], self.mock_window, starting_cards=0)
+        self.mock_interaction = Mock()
+        players = [
+            player.Player(name, self.mock_interaction) for name in ["P1", "P2"]
+        ]
+        self.g = game.Game(players, [], starting_cards=0)
         self.g.start()
-        self.p1 = self.g.get_player("P1")
-        self.p2 = self.g.get_player("P2")
+        self.p1 = self.g.get_player_by_name("P1")
+        self.p2 = self.g.get_player_by_name("P2")
         self.p1.add_property(
             cards.PropertyCard("Red", 1, cards.PropertyColour.RED),
         )
@@ -322,16 +372,19 @@ class TestForcedDeal(unittest.TestCase):
 
     def test_forced_deal(self) -> None:
         with patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_player_target",
             return_value=self.p2,
         ), patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_property_target",
-            side_effect=[
-                self.p2.properties[cards.PropertyColour.YELLOW].cards[0],
-                self.p1.properties[cards.PropertyColour.RED].cards[0],
+            return_value=self.p2.properties[cards.PropertyColour.YELLOW].cards[
+                0
             ],
+        ), patch.object(
+            self.mock_interaction,
+            "choose_property_source",
+            return_value=self.p1.properties[cards.PropertyColour.RED].cards[0],
         ):
             self.g.play_forced_deal(self.p1)
         self.assertEqual(
@@ -354,7 +407,7 @@ class TestForcedDeal(unittest.TestCase):
     def test_forced_deal_target_no_properties(self) -> None:
         self.p2.properties = self.p2.empty_property_sets()
         with patch.object(
-            self.g,
+            self.mock_interaction,
             "choose_player_target",
             return_value=self.p2,
         ), self.assertRaises(common.InvalidChoiceError):

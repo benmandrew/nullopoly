@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import Mock
 
 import cards
 import player
@@ -6,7 +7,9 @@ import player
 
 class TestChargeMoneyPayment(unittest.TestCase):
     def setUp(self) -> None:
-        self.p = player.Player("Test")
+        player.Player.global_index = 0
+        mock_interaction = Mock()
+        self.p = player.Player("Test", mock_interaction)
 
     def test_exact_payment(self) -> None:
         self.p.add_to_bank(cards.MoneyCard(5))
