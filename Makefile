@@ -12,7 +12,7 @@ fmt:
 fmt-ci:
 	python3 -m black --check .
 
-lint: ruff-fix pylint mypy
+lint: ruff-fix pylint mypy bandit
 
 ruff:
 	python3 -m ruff check .
