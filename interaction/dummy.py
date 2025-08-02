@@ -13,6 +13,17 @@ class DummyInteraction(interaction.Interaction):
     ) -> player.PropertySet:
         raise NotImplementedError
 
+    def choose_property_source(
+        self,
+        me: player.Player,
+        without_full_sets: bool = False,
+    ) -> cards.PropertyCard:
+        properties = me.properties_to_list(
+            without_full_sets=without_full_sets,
+        )
+        assert properties, "No properties available to choose from"
+        return min(properties, key=lambda prop: prop.value)
+
     def choose_property_target(
         self,
         target: player.Player,
@@ -22,8 +33,6 @@ class DummyInteraction(interaction.Interaction):
             without_full_sets=without_full_sets,
         )
         assert properties, "No properties available to choose from"
-        if target == self:
-            return min(properties, key=lambda prop: prop.value)
         return max(properties, key=lambda prop: prop.value)
 
     def choose_player_target(

@@ -141,7 +141,7 @@ class Game:
             target,
             without_full_sets=True,
         )
-        source_card = p.inter.choose_property_target(p)
+        source_card = p.inter.choose_property_source(p)
         p.add_property(target_card)
         target.remove_property(target_card)
         target.add_property(source_card)
@@ -281,7 +281,7 @@ class Game:
     ) -> list[cards.PropertyCard]:
         charged_properties = []
         while amount > 0 and p.properties_to_list():
-            property_card = p.inter.choose_property_target(p)
+            property_card = p.inter.choose_property_source(p)
             p.remove_property(property_card)
             amount -= property_card.value
             charged_properties.append(property_card)

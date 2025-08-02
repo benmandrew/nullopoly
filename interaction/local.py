@@ -46,6 +46,16 @@ class LocalInteraction(interaction.Interaction):
         choice = self.win.get_number_input(1, len(properties))
         return properties[choice - 1]
 
+    def choose_property_source(
+        self,
+        me: player.Player,
+        without_full_sets: bool = False,
+    ) -> cards.PropertyCard:
+        return self.choose_property_target(
+            target=me,
+            without_full_sets=without_full_sets,
+        )
+
     def choose_player_target(
         self,
         players: list[player.Player],

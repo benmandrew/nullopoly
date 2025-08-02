@@ -23,15 +23,6 @@ class TestAIInteraction(unittest.TestCase):
         chosen = self.ai.choose_card_in_hand(self.p1)
         self.assertEqual(chosen, card2)
 
-    def test_choose_property_target_prefers_high_value(self) -> None:
-        # Give p2 two properties, AI should pick the higher value
-        prop1 = cards.PropertyCard("Cheap", 1, cards.PropertyColour.RED)
-        prop2 = cards.PropertyCard("Expensive", 5, cards.PropertyColour.RED)
-        self.p2.add_property(prop1)
-        self.p2.add_property(prop2)
-        chosen = self.ai.choose_property_target(self.p2)
-        self.assertEqual(chosen, prop2)
-
     def test_choose_rent_colour_and_amount_picks_highest(self) -> None:
         # AI owns 1 Dark Blue (£3) and 2 Green (£4) properties
         darkblue = cards.PropertyCard(
@@ -68,7 +59,7 @@ class TestAIInteraction(unittest.TestCase):
         self.assertEqual(colour, cards.PropertyColour.DARK_BLUE)
         self.assertEqual(amount, 3)
 
-    def test_game_state_value(self) -> None:
+    def test_game_state_static_value(self) -> None:
         # AI has 2 money cards and 1 property, Human has 1 property
         self.p1.hand = []
         self.p1.bank = [cards.MoneyCard(2), cards.MoneyCard(3)]
@@ -82,6 +73,89 @@ class TestAIInteraction(unittest.TestCase):
         assert self.ai.planner is not None, "AI planner should be set"
         value = self.ai.planner.game_state_value(self.g, self.p1)
         self.assertEqual(value, expected)
+
+    def test_sly_deal_prefers_high_value(self) -> None:
+        # Give p2 two properties, AI should pick the higher value
+        prop1 = cards.PropertyCard("Cheap", 1, cards.PropertyColour.RED)
+        prop2 = cards.PropertyCard("Expensive", 5, cards.PropertyColour.RED)
+        self.p2.add_property(prop1)
+        self.p2.add_property(prop2)
+        assert self.ai.planner is not None
+        plan = self.ai.planner.choose_plan(
+            [
+                cards.ActionCard(
+                    "Sly Deal",
+                    2,
+                    cards.ActionType.SLY_DEAL,
+                ),
+            ],
+        )
+        assert isinstance(
+            plan,
+            ai.SlyDealPlan,
+        ), "Plan should be an instance of SlyDealPlan"
+        self.assertEqual(plan.target_property, prop2)
+
+    def test_game_state_forced_deal_value(self) -> None:
+        ai_swap = cards.PropertyCard("Cheap", 1, cards.PropertyColour.RED)
+        ai_keep = cards.PropertyCard("Expensive", 5, cards.PropertyColour.BROWN)
+        opp_swap = cards.PropertyCard(
+            "Expensive",
+            5,
+            cards.PropertyColour.GREEN,
+        )
+        opp_keep = cards.PropertyCard(
+            "Cheap",
+            1,
+            cards.PropertyColour.LIGHT_BLUE,
+        )
+        self.p1.add_property(ai_swap)
+        self.p1.add_property(ai_keep)
+        self.p2.add_property(opp_swap)
+        self.p2.add_property(opp_keep)
+        forced_deal = cards.ActionCard(
+            "Forced Deal",
+            3,
+            cards.ActionType.FORCED_DEAL,
+        )
+        # Set up the planner and generate plans
+        assert self.ai.planner is not None
+        all_plans = self.ai.planner.generate_plans(forced_deal)
+        valuations = [
+            self.ai.planner.plan_value_if_played(plan) for plan in all_plans
+        ]
+        self.assertListEqual(valuations, [-8, 0, 0, 8])
+
+    def test_forced_deal_ai_prefers_high_for_low(self) -> None:
+        ai_swap = cards.PropertyCard("Cheap", 1, cards.PropertyColour.RED)
+        ai_keep = cards.PropertyCard("Expensive", 5, cards.PropertyColour.BROWN)
+        opp_swap = cards.PropertyCard(
+            "Expensive",
+            5,
+            cards.PropertyColour.GREEN,
+        )
+        opp_keep = cards.PropertyCard(
+            "Cheap",
+            1,
+            cards.PropertyColour.LIGHT_BLUE,
+        )
+        self.p1.add_property(ai_swap)
+        self.p1.add_property(ai_keep)
+        self.p2.add_property(opp_swap)
+        self.p2.add_property(opp_keep)
+        forced_deal = cards.ActionCard(
+            "Forced Deal",
+            3,
+            cards.ActionType.FORCED_DEAL,
+        )
+        assert self.ai.planner is not None
+        plan = self.ai.planner.choose_plan([forced_deal])
+        assert isinstance(
+            plan,
+            ai.ForcedDealPlan,
+        ), "Plan should be an instance of ForcedDealPlan"
+        self.assertEqual(plan.source_property, ai_swap)
+        self.assertEqual(plan.target_property, opp_swap)
 
 
 if __name__ == "__main__":

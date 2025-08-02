@@ -72,7 +72,7 @@ class TestPayments(unittest.TestCase):
     def test_get_payment_2(self) -> None:
         with patch.object(
             self.mock_interaction,
-            "choose_property_target",
+            "choose_property_source",
             side_effect=[self.property1],
         ):
             money, properties = self.g.get_payment(self.player, 10)
@@ -98,7 +98,7 @@ class TestPayments(unittest.TestCase):
     def test_get_payment_3(self) -> None:
         with patch.object(
             self.mock_interaction,
-            "choose_property_target",
+            "choose_property_source",
             side_effect=[self.property1, self.property2],
         ):
             money, properties = self.g.get_payment(self.player, 20)

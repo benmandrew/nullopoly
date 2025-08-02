@@ -41,9 +41,9 @@ class PropertyPlan(Plan):
 
 @dataclass(frozen=True)
 class MoneyPlan(Plan):
-    """Plan to play a money card."""
+    """Plan to put a money card or action card in the bank."""
 
-    card: cards.MoneyCard
+    card: cards.MoneyCard | cards.ActionCard
 
 
 @dataclass(frozen=True)
@@ -112,7 +112,7 @@ class Planner:
 
         self.plan: Plan | None = None  # Current plan
 
-    def choose_plan(self, hand: list[cards.Card]) -> None:
+    def choose_plan(self, hand: list[cards.Card]) -> Plan:
         # AI chooses the best plan based on the current hand
         all_plans = [self.generate_plans(card) for card in hand]
         flat = list(itertools.chain(*all_plans))
@@ -121,6 +121,7 @@ class Planner:
             flat,
             key=self.plan_value_if_played,
         )
+        return self.plan
 
     def game_state_value(self, g: game.Game, me: player.Player) -> int:
         """Calculate a simple value for the game state."""
@@ -214,6 +215,7 @@ class Planner:
 
     def plan_value_if_played(self, plan: Plan) -> int:
         """Compute the value of the game state if the given plan is played."""
+        self.plan = plan
         g_copy = copy_game(self.g, self.p)
         p = g_copy.get_player_by_idx(self.p.index)
         if isinstance(plan, (PropertyPlan, MoneyPlan, ActionPlan)):
@@ -249,13 +251,32 @@ class AIInteraction(interaction.Interaction):
 
     def choose_full_set_target(
         self,
-        target: player.Player,
+        _target: player.Player,
     ) -> player.PropertySet:
-        # AI logic to choose a full set
-        for prop_set in target.properties.values():
-            if prop_set.is_complete():
-                return prop_set
-        return next(iter(target.properties.values()))
+        assert self.planner is not None, "Planner not set for AI interaction"
+        assert (
+            self.planner.plan is not None
+        ), "No plan chosen for AI interaction"
+        assert isinstance(
+            self.planner.plan,
+            DealBreakerPlan,
+        ), "Plan must be a DealBreakerPlan to choose a full set target"
+        return self.planner.plan.target_set
+
+    def choose_property_source(
+        self,
+        me: player.Player,
+        without_full_sets: bool = False,
+    ) -> cards.PropertyCard:
+        properties = me.properties_to_list(without_full_sets=without_full_sets)
+        assert properties, "No properties available to choose from"
+        assert self.planner is not None, "Planner not set for AI interaction"
+        assert (
+            self.planner.plan is not None
+        ), "No plan chosen for AI interaction"
+        if isinstance(self.planner.plan, ForcedDealPlan):
+            return self.planner.plan.source_property
+        return min(properties, key=lambda prop: prop.value)
 
     def choose_property_target(
         self,
@@ -267,26 +288,51 @@ class AIInteraction(interaction.Interaction):
             without_full_sets=without_full_sets,
         )
         assert properties, "No properties available to choose from"
-        if target == self:
-            return min(properties, key=lambda prop: prop.value)
-        return max(properties, key=lambda prop: prop.value)
+        assert self.planner is not None, "Planner not set for AI interaction"
+        assert (
+            self.planner.plan is not None
+        ), "No plan chosen for AI interaction"
+        assert isinstance(
+            self.planner.plan,
+            (SlyDealPlan, ForcedDealPlan),
+        ), (
+            "Plan must be a SlyDealPlan or"
+            "ForcedDealPlan to choose a property target"
+        )
+        return self.planner.plan.target_property
 
     def choose_player_target(
         self,
-        players: list[player.Player],
+        _players: list[player.Player],
     ) -> player.Player:
-        # AI logic to choose a player
-        return players[0]
+        assert self.planner is not None, "Planner not set for AI interaction"
+        assert (
+            self.planner.plan is not None
+        ), "No plan chosen for AI interaction"
+        assert isinstance(
+            self.planner.plan,
+            TargetedActionPlan,
+        ), "Plan must be a TargetedActionPlan to choose a player target"
+        return self.planner.plan.target
 
     def choose_action_usage(self) -> int:
-        # AI logic to decide how to use an action card
-        return 1
+        assert self.planner is not None, "Planner not set for AI interaction"
+        assert (
+            self.planner.plan is not None
+        ), "No plan chosen for AI interaction"
+        if isinstance(self.planner.plan, ActionPlan):
+            return 1
+        if isinstance(self.planner.plan, MoneyPlan):
+            return 2
+        msg = "Plan must be an ActionPlan or MoneyPlan to choose action usage"
+        raise TypeError(
+            msg,
+        )
 
     def choose_rent_colour_and_amount(
         self,
         owned_colours_with_rents: list[tuple[cards.PropertyColour, int]],
     ) -> tuple[cards.PropertyColour, int]:
-        # AI logic to choose a colour and amount for rent
         assert owned_colours_with_rents, "No owned colours with rents"
         return max(
             owned_colours_with_rents,

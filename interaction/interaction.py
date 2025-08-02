@@ -26,6 +26,14 @@ class Interaction(ABC):
         """Choose a full property set from the target player's properties."""
 
     @abstractmethod
+    def choose_property_source(
+        self,
+        me: "player.Player",
+        without_full_sets: bool = False,
+    ) -> cards.PropertyCard:
+        """Choose a property card from this player's hand."""
+
+    @abstractmethod
     def choose_property_target(
         self,
         target: "player.Player",

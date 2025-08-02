@@ -60,7 +60,7 @@ class TestActionCards(unittest.TestCase):
         self.p3.add_property(property2)
         with patch.object(
             self.mock_interaction,
-            "choose_property_target",
+            "choose_property_source",
             return_value=property2,
         ):
             self.g.play_action_card(action_card, self.p1)
@@ -378,10 +378,13 @@ class TestForcedDeal(unittest.TestCase):
         ), patch.object(
             self.mock_interaction,
             "choose_property_target",
-            side_effect=[
-                self.p2.properties[cards.PropertyColour.YELLOW].cards[0],
-                self.p1.properties[cards.PropertyColour.RED].cards[0],
+            return_value=self.p2.properties[cards.PropertyColour.YELLOW].cards[
+                0
             ],
+        ), patch.object(
+            self.mock_interaction,
+            "choose_property_source",
+            return_value=self.p1.properties[cards.PropertyColour.RED].cards[0],
         ):
             self.g.play_forced_deal(self.p1)
         self.assertEqual(
