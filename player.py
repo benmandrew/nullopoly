@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 
 import cards
+from interaction import interaction
 
 
 class PropertySet:
@@ -43,8 +44,9 @@ class PropertySet:
 
 
 class Player:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, inter: interaction.Interaction) -> None:
         self.name = name
+        self.inter = inter
         self.hand: list[cards.Card] = []
         self.properties: dict[cards.PropertyColour, PropertySet] = (
             self.empty_property_sets()
@@ -182,3 +184,11 @@ class Player:
 
     def fmt_hand(self) -> list[str]:
         return cards.fmt_cards_side_by_side(self.hand)
+
+    def choose_player_target(
+        self,
+        players: list[Player],
+    ) -> Player:
+        """Choose a player from the list of players, excluding self."""
+        players = [p for p in players if p != self]
+        return self.inter.choose_player_target(players)

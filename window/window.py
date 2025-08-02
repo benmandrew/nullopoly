@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import curses
 import queue
 import threading
@@ -9,9 +11,12 @@ from window import common, hand, log, table
 
 @dataclass(frozen=True)
 class RedrawData:
-    current_player: player.Player
+    current_player: player.Player | None
+    """The player whose turn it is, or None if it's another player's turn."""
+    n_cards_played: int | None
+    """Number of cards played in the current turn,
+    or None if it's another player's turn."""
     players: list[player.Player]
-    n_cards_played: int
 
 
 class Window:
@@ -51,7 +56,7 @@ class Window:
             width,
         )
 
-    def draw(
+    def draw_my_turn(
         self,
         current_player: player.Player,
         players: list[player.Player],
@@ -69,6 +74,18 @@ class Window:
             len(current_player.hand),
             n_cards_played,
         )
+
+    def draw_other_turn(
+        self,
+        players: list[player.Player],
+    ) -> None:
+        self.redraw_data = RedrawData(
+            current_player=None,
+            players=players,
+            n_cards_played=None,
+        )
+        self.table.draw(players)
+        self.log.draw()
 
     def input_thread(self) -> None:
         while True:
@@ -95,11 +112,19 @@ class Window:
             self.redraw_data is not None
         ), "Redraw data must be set before resizing"
         self.create_windows()
-        self.draw(
-            self.redraw_data.current_player,
-            self.redraw_data.players,
-            self.redraw_data.n_cards_played,
-        )
+        if (
+            self.redraw_data.current_player is not None
+            and self.redraw_data.n_cards_played is not None
+        ):
+            self.draw_my_turn(
+                self.redraw_data.current_player,
+                self.redraw_data.players,
+                self.redraw_data.n_cards_played,
+            )
+        else:
+            self.draw_other_turn(
+                self.redraw_data.players,
+            )
 
     def turn_over(self, next_player_name: str) -> None:
         self.hand.turn_over(self.input_queue, next_player_name)

@@ -6,11 +6,9 @@ import sys
 from types import FrameType
 
 import game
-from window import common, window
-
-
-class WonError(Exception):
-    """Raised when a player has won the game."""
+import player
+from interaction import local
+from window import common
 
 
 def game_loop(g: game.Game) -> game.Game:
@@ -20,7 +18,7 @@ def game_loop(g: game.Game) -> game.Game:
     while n_cards_played < 3:
         g.draw(n_cards_played)
         try:
-            c = g.get_card_choice(current_player)
+            c = g.choose_card_in_hand(current_player)
             g.play_card(c, current_player)
         except common.InvalidChoiceError:
             continue
@@ -29,24 +27,26 @@ def game_loop(g: game.Game) -> game.Game:
         if not current_player.hand:
             g.deal_from_empty(current_player)
         if g.check_win():
-            raise WonError
+            raise game.WonError
     g.draw(n_cards_played)
     return g
 
 
-def run_game(stdscr: curses.window) -> game.Game:
-    players = ["Alice", "Bob"]
-    win = window.Window(stdscr, n_players=len(players))
-    g = game.Game(players, deck="deck.json", win=win)
+def run_game(stdscr: curses.window) -> None:
+    player_names = ["Alice", "Bob"]
+    local_interaction = local.LocalInteraction(
+        stdscr,
+        n_players=len(player_names),
+    )
+    players = [player.Player(name, local_interaction) for name in player_names]
+    g = game.Game(players, deck="deck.json")
     g.start()
     while True:
         try:
             g = game_loop(g)
-        except WonError:
+        except game.WonError:
             break
         g.end_turn()
-    g.win.game_over()
-    return g
 
 
 def curses_main(stdscr: curses.window) -> None:

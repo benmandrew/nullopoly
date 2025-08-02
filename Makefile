@@ -1,7 +1,7 @@
 .PHONY: run test fmt lint ruff pylint mypy
 
 run:
-	python3 main.py
+	python3 local.py
 
 test:
 	python3 -m unittest discover tests
@@ -12,10 +12,13 @@ fmt:
 fmt-ci:
 	python3 -m black --check .
 
-lint: ruff pylint mypy
+lint: ruff-fix pylint mypy
 
 ruff:
 	python3 -m ruff check .
+
+ruff-fix:
+	python3 -m ruff check . --fix
 
 pylint:
 	find . -name ".venv" -prune -o -name "*.py" -print | xargs python3 -m pylint --score=n --reports=n --output-format=colorized
