@@ -1,14 +1,10 @@
-from __future__ import annotations
-
-import curses
-import signal
-import sys
-from types import FrameType
-
 import game
 import player
-from interaction import ai, dummy, local
+from interaction import ai, dummy, remote
 from window import common
+
+HOST = "127.0.0.1"
+PORT = 12345
 
 
 def game_loop(g: game.Game) -> game.Game:
@@ -38,6 +34,13 @@ def set_ai_game_instances(players: list[player.Player], g: game.Game) -> None:
             p.inter.set_game_instance(g)
 
 
+def set_remote_player_indexes(players: list[player.Player]) -> None:
+    for p in players:
+        if isinstance(p.inter, remote.RemoteInteraction):
+            assert p.inter.index is not None, "Remote player index must be set"
+            p.index = p.inter.index
+
+
 def create_ai_player(name: str) -> player.Player:
     p = player.Player(
         name,
@@ -48,13 +51,13 @@ def create_ai_player(name: str) -> player.Player:
     return p
 
 
-def run_game(stdscr: curses.window) -> None:
+def main() -> None:
     players = [
         player.Player(
             "Ben",
-            local.LocalInteraction(
-                stdscr,
-                n_players=2,
+            remote.RemoteInteraction(
+                host=HOST,
+                port=PORT,
             ),
         ),
         create_ai_player("AI"),
@@ -70,26 +73,5 @@ def run_game(stdscr: curses.window) -> None:
         g.end_turn()
 
 
-def curses_exit() -> None:
-    curses.curs_set(1)  # Show the cursor again
-    curses.endwin()
-
-
-def curses_main(stdscr: curses.window) -> None:
-    curses.start_color()
-    curses.curs_set(0)  # Hide the cursor
-    try:
-        run_game(stdscr)
-    except Exception:
-        curses_exit()
-        raise
-
-
-def signal_handler(_sig: int, _frame: FrameType | None) -> None:
-    curses_exit()
-    sys.exit(0)
-
-
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal_handler)
-    curses.wrapper(curses_main)
+    main()

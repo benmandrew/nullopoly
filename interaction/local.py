@@ -12,6 +12,10 @@ class LocalInteraction(interaction.Interaction):
     def __init__(self, stdscr: curses.window, n_players: int) -> None:
         self.win = window.Window(stdscr, n_players)
 
+    def update_n_players(self, n_players: int) -> None:
+        """Update the number of players in the interaction."""
+        self.win.update_n_players(n_players)
+
     def choose_card_in_hand(self, p: player.Player) -> cards.Card:
         choice = self.win.get_number_input(1, len(p.hand))
         return p.get_card_in_hand(choice - 1)

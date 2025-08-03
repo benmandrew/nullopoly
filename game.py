@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import uuid
 from typing import cast
 
 import cards
@@ -65,7 +66,7 @@ class Game:
         msg = f"Player '{name}' not found"
         raise ValueError(msg)
 
-    def get_player_by_idx(self, idx: int) -> player.Player:
+    def get_player_by_idx(self, idx: uuid.UUID) -> player.Player:
         for p in self.players:
             if p.index == idx:
                 return p

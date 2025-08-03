@@ -21,7 +21,7 @@ class RedrawData:
 
 class Window:
 
-    def __init__(self, stdscr: curses.window, n_players: int) -> None:
+    def __init__(self, stdscr: curses.window, n_players: int = 1) -> None:
         self.stdscr = stdscr
         self.stdscr.nodelay(True)
         self.stdscr.keypad(True)
@@ -31,6 +31,11 @@ class Window:
         common.init_colours()
         self.input_queue: queue.Queue[str] = queue.Queue()
         threading.Thread(target=self.input_thread, daemon=True).start()
+
+    def update_n_players(self, n_players: int) -> None:
+        """Update the number of players in the interaction."""
+        self.n_players = n_players
+        self.create_windows()
 
     def create_windows(self) -> None:
         height, width = self.getmaxyx()

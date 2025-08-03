@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Any
 
 
 class PropertyColour(Enum):
@@ -96,6 +97,22 @@ class PropertyCard:
     def __repr__(self) -> str:
         return f"Property({self.name}, £{self.value}, {self.colour})"
 
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "type": "PropertyCard",
+            "name": self.name,
+            "value": self.value,
+            "colour": self.colour.name,
+        }
+
+    @staticmethod
+    def from_json(data: dict[str, Any]) -> "PropertyCard":
+        return PropertyCard(
+            name=data["name"],
+            value=data["value"],
+            colour=PropertyColour[data["colour"]],
+        )
+
 
 class ActionCard:
     def __init__(self, name: str, value: int, action: ActionType) -> None:
@@ -122,6 +139,14 @@ class ActionCard:
     def __repr__(self) -> str:
         return self.__str__()
 
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "type": "ActionCard",
+            "name": self.name,
+            "value": self.value,
+            "action": self.action.name,
+        }
+
 
 class MoneyCard:
     def __init__(self, value: int) -> None:
@@ -140,6 +165,39 @@ class MoneyCard:
 
     def __repr__(self) -> str:
         return f"Money(£{self.value})"
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "type": "MoneyCard",
+            "value": self.value,
+        }
+
+
+def from_json(data: dict[str, Any]) -> Card:
+    card_type = data.get("type")
+    if card_type == "PropertyCard":
+        return PropertyCard(
+            name=data["name"],
+            value=data["value"],
+            colour=PropertyColour[data["colour"]],
+        )
+    if card_type == "ActionCard":
+        return ActionCard(
+            name=data["name"],
+            value=data["value"],
+            action=ActionType[data["action"]],
+        )
+    if card_type == "MoneyCard":
+        return MoneyCard(value=data["value"])
+    msg = f"Unknown card type: {card_type}"
+    raise ValueError(msg)
+
+
+def to_json(card: Card) -> dict[str, Any]:
+    if isinstance(card, (PropertyCard, ActionCard, MoneyCard)):
+        return card.to_json()
+    msg = f"Unknown card type: {type(card)}"
+    raise ValueError(msg)
 
 
 def fmt_cards_side_by_side(cards: list[Card]) -> list[str]:

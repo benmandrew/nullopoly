@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import uuid
 from copy import deepcopy
 from dataclasses import dataclass
 
@@ -226,7 +227,7 @@ class Planner:
 class AIInteraction(interaction.Interaction):
     """Interaction class for AI player making decisions automatically."""
 
-    def __init__(self, me_idx: int) -> None:
+    def __init__(self, me_idx: uuid.UUID) -> None:
         self.me_idx = me_idx  # index of the AI player
 
         self.planner: Planner | None = None

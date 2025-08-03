@@ -1,0 +1,191 @@
+from __future__ import annotations
+
+import curses
+import json
+import signal
+import socket
+import sys
+from types import FrameType
+from typing import Any
+
+import cards
+import game
+import player
+from interaction import dummy, local
+
+HOST = "127.0.0.1"
+PORT = 12345
+
+DUMMY = dummy.DummyInteraction()
+
+
+class BlockReceiver:
+    """A class to receive blocks of data separated by slashes."""
+
+    def __init__(self, conn: socket.socket) -> None:
+        self.conn = conn
+        self.buffer = b""
+
+    def receive_opt(self) -> str | None:
+        while b"/" not in self.buffer:
+            chunk = self.conn.recv(4096)
+            if not chunk:
+                return None
+            self.buffer += chunk
+        block, self.buffer = self.buffer.split(b"/", 1)
+        return block.decode("utf-8")
+
+    def receive(self) -> str:
+        data = self.receive_opt()
+        assert data is not None, "No data received"
+        return data
+
+
+def game_from_json(data: dict[str, Any]) -> game.Game:
+    players = [player.Player.from_json(p, DUMMY) for p in data["players"]]
+    return game.Game(players, deck=[])
+
+
+def notify_draw_my_turn(
+    inter: local.LocalInteraction,
+    block_receiver: BlockReceiver,
+) -> game.Game:
+    data_dict = json.loads(block_receiver.receive())
+    n_players = len(data_dict["players"])
+    if n_players != inter.win.n_players:
+        inter.win.update_n_players(n_players)
+    current_player = player.Player.from_json(
+        data_dict["current_player"],
+        DUMMY,
+    )
+    inter.notify_draw_my_turn(
+        current_player=current_player,
+        players=[
+            player.Player.from_json(p, DUMMY) for p in data_dict["players"]
+        ],
+        n_cards_played=int(data_dict["n_cards_played"]),
+    )
+    return game_from_json(data_dict)
+
+
+def notify_draw_other_turn(
+    inter: local.LocalInteraction,
+    block_receiver: BlockReceiver,
+) -> game.Game:
+    data = block_receiver.receive()
+    assert data is not None, "No data received"
+    data_dict = json.loads(data)
+    n_players = len(data_dict["players"])
+    if n_players != inter.win.n_players:
+        inter.win.update_n_players(n_players)
+    inter.notify_draw_other_turn(
+        players=[
+            player.Player.from_json(p, DUMMY) for p in data_dict["players"]
+        ],
+    )
+    return game_from_json(data_dict)
+
+
+def run_game(stdscr: curses.window) -> None:
+    g: game.Game = game.Game(
+        [],
+        deck=[],
+    )
+    me: player.Player = player.Player(
+        "Ben",
+        DUMMY,
+    )
+    inter = local.LocalInteraction(stdscr, n_players=1)
+    target: player.Player | None = None
+    colour_options: list[cards.PropertyColour] = []
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((HOST, PORT))
+        block_receiver = BlockReceiver(s)
+        s.sendall(str(me.index).encode("utf-8"))
+        while True:
+            data = block_receiver.receive_opt()
+            if data is None:
+                continue
+            if data == "notify_draw_my_turn":
+                g = notify_draw_my_turn(inter, block_receiver)
+                me = g.current_player()
+            elif data == "notify_draw_other_turn":
+                g = notify_draw_other_turn(inter, block_receiver)
+            elif data == "choose_card_in_hand":
+                card = inter.choose_card_in_hand(me)
+                if isinstance(card, cards.ActionCard) and cards.is_rent_action(
+                    card.action,
+                ):
+                    colour_options = cards.RENT_CARD_COLOURS[card.action]
+                s.sendall(int.to_bytes(me.hand.index(card) + 1, 1, "big"))
+            elif data == "choose_full_set_target":
+                assert target is not None, "Target player is not set"
+                full_sets = [
+                    prop
+                    for prop in target.properties.values()
+                    if prop.is_complete()
+                ]
+                full_set = inter.choose_full_set_target(me)
+                s.sendall(int.to_bytes(full_sets.index(full_set) + 1, 1, "big"))
+            elif data == "choose_property_target":
+                assert target is not None, "Target player is not set"
+                prop = inter.choose_property_target(target)
+                properties = target.properties_to_list()
+                s.sendall(int.to_bytes(properties.index(prop) + 1, 1, "big"))
+            elif data == "choose_property_source":
+                prop = inter.choose_property_source(me)
+                properties = me.properties_to_list()
+                s.sendall(int.to_bytes(properties.index(prop) + 1, 1, "big"))
+            elif data == "choose_player_target":
+                excluded_players = [p for p in g.players if p != me]
+                target = inter.choose_player_target(excluded_players)
+                s.sendall(
+                    int.to_bytes(excluded_players.index(target) + 1, 1, "big"),
+                )
+            elif data == "choose_action_usage":
+                choice = inter.choose_action_usage()
+                s.sendall(int.to_bytes(choice, 1, "big"))
+            elif data == "choose_rent_colour_and_amount":
+                assert colour_options, "No colour options available"
+                owned_colours_with_rents = me.owned_colours_with_rents(
+                    colour_options,
+                )
+                colour_choice = inter.choose_rent_colour_and_amount(
+                    owned_colours_with_rents,
+                )
+                s.sendall(
+                    int.to_bytes(
+                        owned_colours_with_rents.index(colour_choice) + 1,
+                        1,
+                        "big",
+                    ),
+                )
+            elif data == "log":
+                message = block_receiver.receive()
+                inter.log(message)
+
+
+def curses_exit() -> None:
+    curses.curs_set(1)  # Show the cursor again
+    curses.endwin()
+
+
+def curses_main(stdscr: curses.window) -> None:
+    curses.start_color()
+    curses.curs_set(0)  # Hide the cursor
+    try:
+        run_game(stdscr)
+    except Exception:
+        curses_exit()
+        raise
+
+
+def signal_handler(_sig: int, _frame: FrameType | None) -> None:
+    curses_exit()
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
+    curses.wrapper(curses_main)
