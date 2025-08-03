@@ -212,7 +212,7 @@ class Planner:
         if isinstance(card, cards.MoneyCard):
             return [MoneyPlan(card)]
         if isinstance(card, cards.ActionCard):
-            return self.generate_action_plans(card)
+            return [MoneyPlan(card), *self.generate_action_plans(card)]
         msg = f"Unknown card type: {type(card)}"
         raise TypeError(
             msg,
