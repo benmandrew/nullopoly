@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import curses
 import json
 import signal
@@ -14,10 +15,36 @@ import game
 import player
 from interaction import dummy, local
 
-HOST = "127.0.0.1"
-PORT = 12345
 
-DUMMY = dummy.DummyInteraction()
+class ClientNamespace(argparse.Namespace):
+    name: str  # Name of the player
+    host: str
+    port: int
+
+
+def get_parser_args() -> ClientNamespace:
+    parser = argparse.ArgumentParser(
+        description="Run a client instance of Nullopoly.",
+        epilog="Example usage: python client.py --name Ben --host 127.0.0.1 --port 12345",  # noqa: E501, pylint: disable=line-too-long
+    )
+    parser.add_argument(
+        "--name",
+        type=str,
+        help="Name of the player",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Host address (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=12345,
+        help="Port number (default: 12345)",
+    )
+    return parser.parse_args(namespace=ClientNamespace())
 
 
 class BlockReceiver:
@@ -40,6 +67,9 @@ class BlockReceiver:
         data = self.receive_opt()
         assert data is not None, "No data received"
         return data
+
+
+DUMMY = dummy.DummyInteraction()
 
 
 def game_from_json(data: dict[str, Any]) -> game.Game:
@@ -212,13 +242,13 @@ def game_loop(
     return c
 
 
-def run_game(stdscr: curses.window) -> None:
+def run_game(stdscr: curses.window, args: ClientNamespace) -> None:
     g: game.Game = game.Game(
         [],
         deck=[],
     )
     me: player.Player = player.Player(
-        "Ben",
+        args.name,
         DUMMY,
     )
     inter = local.LocalInteraction(stdscr, n_players=1)
@@ -226,7 +256,7 @@ def run_game(stdscr: curses.window) -> None:
     colour_options: list[cards.PropertyColour] = []
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
+        s.connect((args.host, args.port))
         block_receiver = BlockReceiver(s)
         s.sendall(str(me.index).encode("utf-8"))
         c = ClientState(
@@ -250,10 +280,11 @@ def curses_exit() -> None:
 
 
 def curses_main(stdscr: curses.window) -> None:
+    args = get_parser_args()
     curses.start_color()
     curses.curs_set(0)  # Hide the cursor
     try:
-        run_game(stdscr)
+        run_game(stdscr, args)
     except Exception:
         curses_exit()
         raise
@@ -265,5 +296,8 @@ def signal_handler(_sig: int, _frame: FrameType | None) -> None:
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal_handler)
-    curses.wrapper(curses_main)
+    if "--help" in sys.argv or "-h" in sys.argv:
+        get_parser_args()
+    else:
+        signal.signal(signal.SIGINT, signal_handler)
+        curses.wrapper(curses_main)
