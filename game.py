@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import random
 import uuid
 from typing import cast
@@ -20,6 +21,7 @@ class Game:
         players: list[player.Player],
         deck: str | list[cards.Card],
         starting_cards: int = 5,
+        create_logger: bool = False,
     ) -> None:
         self.players = players
         if isinstance(deck, str):
@@ -30,6 +32,11 @@ class Game:
         self.current_player_index: int = 0
         self.current_turn: int = 0
         self.discard_pile: list[cards.Card] = []
+        self.logger: logging.Logger = (
+            logging.getLogger(__name__)
+            if create_logger
+            else logging.getLogger("dummy")
+        )
 
     def start(self) -> None:
         random.shuffle(self.deck)
@@ -41,6 +48,7 @@ class Game:
         self.deal_to_player(p, self.starting_cards)
 
     def deal_to_player(self, p: player.Player, count: int) -> None:
+        self.logger.info("Dealing %d cards to %s", count, p.name)
         for _ in range(count):
             p.add_to_hand(self.draw_card())
 
@@ -58,6 +66,11 @@ class Game:
         finished_player = self.current_player()
         self.next_player()
         finished_player.inter.notify_turn_over(self.current_player().name)
+        self.logger.info(
+            "Next turn, from %s to %s",
+            finished_player.name,
+            self.current_player().name,
+        )
 
     def get_player_by_name(self, name: str) -> player.Player:
         for p in self.players:
@@ -116,6 +129,7 @@ class Game:
         )
 
     def play_sly_deal(self, p: player.Player) -> None:
+        self.logger.info("%s played Sly Deal", p.name)
         target = p.choose_player_target(self.players)
         if not target.has_properties(without_full_sets=True):
             p.inter.log(f"{target.name} has no properties to take!")
@@ -127,14 +141,16 @@ class Game:
         p.add_property(property_card)
         target.remove_property(property_card)
         self.log_all(
-            f"{p.name} took {property_card.name} from {target.name}",
+            f"{p.name} played Sly Deal, taking {property_card.name} from {target.name}",  # noqa: E501 pylint: disable=line-too-long
         )
 
     def play_forced_deal(self, p: player.Player) -> None:
+        self.logger.info("%s played Forced Deal", p.name)
         if not p.has_properties(without_full_sets=True):
             p.inter.log(f"{p.name} has no properties to swap!")
             raise common.InvalidChoiceError
         target = p.choose_player_target(self.players)
+        self.logger.info("%s selected %s as target", p.name, target.name)
         if not target.has_properties(without_full_sets=True):
             p.inter.log(f"{target.name} has no properties to swap!")
             raise common.InvalidChoiceError
@@ -148,7 +164,7 @@ class Game:
         target.add_property(source_card)
         p.remove_property(source_card)
         self.log_all(
-            f"{p.name} forced {target.name} to swap {target_card.name} with {source_card.name}",  # noqa: E501 pylint: disable=line-too-long
+            f"{p.name} played Forced Deal, forcing {target.name} to swap {target_card.name} with {source_card.name}",  # noqa: E501 pylint: disable=line-too-long
         )
 
     def get_rent_colour_and_amount(
@@ -200,11 +216,13 @@ class Game:
 
     def play_debt_collector_card(self, p: player.Player) -> None:
         target = p.choose_player_target(self.players)
-        self.log_all(f"{p.name} collected £5 debt from {target.name}")
+        self.log_all(
+            f"{p.name} played Debt Collector, collecting £5 from {target.name}",
+        )
         self.transfer_payment(target, p, 5)
 
     def play_pass_go(self, p: player.Player) -> None:
-        self.log_all(f"{p.name} passed GO and picked up two cards")
+        self.log_all(f"{p.name} played Pass Go, drawing two cards")
         self.deal_to_player(p, 2)
 
     def play_action_card(
@@ -235,11 +253,14 @@ class Game:
 
     def play_card(self, card: cards.Card, p: player.Player) -> None:
         if isinstance(card, cards.PropertyCard):
+            self.log_all(
+                f"{p.name} played {card.name} ({card.colour.pretty()})",
+            )
             p.add_property(card)
         elif isinstance(card, cards.MoneyCard):
+            self.log_all(f"{p.name} put £{card.value} in their bank")
             p.add_to_bank(card)
         elif isinstance(card, cards.ActionCard):
-            # choice = self.choose_action_usage()
             choice = self.players[
                 self.current_player_index
             ].inter.choose_action_usage()
@@ -303,6 +324,7 @@ class Game:
 
     def log_all(self, message: str) -> None:
         """Log a message to all players."""
+        self.logger.info(message)
         for p in self.players:
             p.inter.log(message)
 

@@ -1,7 +1,21 @@
+import json
+import logging.config
+import pathlib
+
 import game
 import player
 from interaction import ai, dummy, remote
 from window import common
+
+logger = logging.getLogger(__name__)
+
+
+def setup_logging() -> None:
+    config_file = pathlib.Path("log_config.json")
+    with config_file.open(encoding="utf-8") as f:
+        config = json.load(f)
+    logging.config.dictConfig(config)
+
 
 HOST = "127.0.0.1"
 PORT = 12345
@@ -52,6 +66,7 @@ def create_ai_player(name: str) -> player.Player:
 
 
 def main() -> None:
+    setup_logging()
     players = [
         player.Player(
             "Ben",
@@ -62,7 +77,7 @@ def main() -> None:
         ),
         create_ai_player("AI"),
     ]
-    g = game.Game(players, deck="deck.json")
+    g = game.Game(players, deck="deck.json", create_logger=True)
     set_ai_game_instances(players, g)
     g.start()
     while True:

@@ -126,7 +126,7 @@ def run_game(stdscr: curses.window) -> None:
                     for prop in target.properties.values()
                     if prop.is_complete()
                 ]
-                full_set = inter.choose_full_set_target(me)
+                full_set = inter.choose_full_set_target(target)
                 s.sendall(int.to_bytes(full_sets.index(full_set) + 1, 1, "big"))
             elif data == "choose_property_target":
                 assert target is not None, "Target player is not set"

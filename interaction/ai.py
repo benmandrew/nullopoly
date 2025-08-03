@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import logging
 import uuid
 from copy import deepcopy
 from dataclasses import dataclass
@@ -22,6 +23,9 @@ def copy_game(g: game.Game, me: player.Player) -> game.Game:
                 continue
             p.inter = dummy.DummyInteraction()
         g_copy = deepcopy(g)
+        g_copy.logger = logging.getLogger(
+            "dummy",
+        )  # Reset logger to avoid logging in copied game
     finally:
         for p, orig in zip(g.players, original_inters):
             p.inter = orig

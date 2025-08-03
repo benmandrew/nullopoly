@@ -50,7 +50,6 @@ class RemoteInteraction(interaction.Interaction):
     def choose_card_in_hand(self, p: player.Player) -> cards.Card:
         assert self.conn is not None, "There is no active connection"
         self.conn.sendall(b"choose_card_in_hand/")
-        print("Choose card in hand")
         data = self.conn.recv(1024)
         i = int.from_bytes(data, "big")
         assert 1 <= i <= len(p.hand), "Invalid card index"
@@ -65,7 +64,6 @@ class RemoteInteraction(interaction.Interaction):
             prop for prop in target.properties.values() if prop.is_complete()
         ]
         self.conn.sendall(b"choose_full_set_target/")
-        print("Choose full set target")
         data = self.conn.recv(1024)
         i = int.from_bytes(data, "big")
         assert 1 <= i <= len(full_sets), "Invalid full set index"
@@ -79,7 +77,6 @@ class RemoteInteraction(interaction.Interaction):
         assert self.conn is not None, "There is no active connection"
         properties = target.properties_to_list(without_full_sets)
         self.conn.sendall(b"choose_property_target/")
-        print("Choose property target")
         data = self.conn.recv(1024)
         i = int.from_bytes(data, "big")
         assert 1 <= i <= len(properties), "Invalid property index"
@@ -90,11 +87,13 @@ class RemoteInteraction(interaction.Interaction):
         me: player.Player,
         without_full_sets: bool = False,
     ) -> cards.PropertyCard:
-        print("Choose property source")
-        return self.choose_property_target(
-            target=me,
-            without_full_sets=without_full_sets,
-        )
+        assert self.conn is not None, "There is no active connection"
+        properties = me.properties_to_list(without_full_sets)
+        self.conn.sendall(b"choose_property_source/")
+        data = self.conn.recv(1024)
+        i = int.from_bytes(data, "big")
+        assert 1 <= i <= len(properties), "Invalid property index"
+        return properties[i - 1]
 
     def choose_player_target(
         self,
@@ -102,7 +101,6 @@ class RemoteInteraction(interaction.Interaction):
     ) -> player.Player:
         assert self.conn is not None, "There is no active connection"
         self.conn.sendall(b"choose_player_target/")
-        print("Choose player target")
         data = self.conn.recv(1024)
         i = int.from_bytes(data, "big")
         assert 1 <= i <= len(players), "Invalid player index"
@@ -111,7 +109,6 @@ class RemoteInteraction(interaction.Interaction):
     def choose_action_usage(self) -> int:
         assert self.conn is not None, "There is no active connection"
         self.conn.sendall(b"choose_action_usage/")
-        print("Choose action usage")
         data = self.conn.recv(1024)
         i = int.from_bytes(data, "big")
         assert 1 <= i <= 2, "Invalid action usage choice"
@@ -123,7 +120,6 @@ class RemoteInteraction(interaction.Interaction):
     ) -> tuple[cards.PropertyColour, int]:
         assert self.conn is not None, "There is no active connection"
         self.conn.sendall(b"choose_rent_colour_and_amount/")
-        print("Choose rent colour and amount")
         data = self.conn.recv(1024)
         i = int.from_bytes(data, "big")
         assert (
