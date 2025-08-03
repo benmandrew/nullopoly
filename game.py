@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import pathlib
 import random
 import uuid
 from typing import cast
@@ -19,12 +20,12 @@ class Game:
     def __init__(
         self,
         players: list[player.Player],
-        deck: str | list[cards.Card],
+        deck: pathlib.Path | list[cards.Card],
         starting_cards: int = 5,
         create_logger: bool = False,
     ) -> None:
         self.players = players
-        if isinstance(deck, str):
+        if isinstance(deck, pathlib.Path):
             self.deck: list[cards.Card] = parse_deck.from_json(deck)
         else:
             self.deck = deck

@@ -1,5 +1,5 @@
 import json
-from pathlib import Path
+import pathlib
 from typing import Any
 
 import cards
@@ -49,12 +49,11 @@ def parse_money_card(card_data: dict[str, Any], idx: int) -> cards.MoneyCard:
     return cards.MoneyCard(card_data["value"])
 
 
-def from_json(filepath: str) -> list[cards.Card]:
-    path = Path(filepath)
-    if not path.is_file():
+def from_json(filepath: pathlib.Path) -> list[cards.Card]:
+    if not filepath.is_file():
         msg = f"Deck file '{filepath}' does not exist."
         raise FileNotFoundError(msg)
-    with Path.open(path, encoding="utf-8") as f:
+    with filepath.open(encoding="utf-8") as f:
         try:
             data = json.load(f)
         except json.JSONDecodeError as exc:

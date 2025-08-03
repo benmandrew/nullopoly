@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging.config
 import pathlib
@@ -15,10 +16,6 @@ def setup_logging() -> None:
     with config_file.open(encoding="utf-8") as f:
         config = json.load(f)
     logging.config.dictConfig(config)
-
-
-HOST = "127.0.0.1"
-PORT = 12345
 
 
 def game_loop(g: game.Game) -> game.Game:
@@ -65,19 +62,63 @@ def create_ai_player(name: str) -> player.Player:
     return p
 
 
+class ServerNamespace(argparse.Namespace):
+    deck: pathlib.Path  # Path to the deck file
+    n_ai: int  # Number of AI players
+    host: str
+    port: int
+
+
+def get_parser_args() -> ServerNamespace:
+    parser = argparse.ArgumentParser(
+        description="Run a server instance of Nullopoly.",
+        epilog="Example usage: python server.py --n-ai 2 --deck custom_deck.json --host 127.0.0.1 --port 12345",  # noqa: E501, pylint: disable=line-too-long
+    )
+    parser.add_argument(
+        "--deck",
+        type=pathlib.Path,
+        default=pathlib.Path("deck.json"),
+        nargs="?",
+        help="Path to the deck file (default: deck.json)",
+    )
+    parser.add_argument(
+        "--n-ai",
+        type=int,
+        default=1,
+        help="Number of AI players (default: 1)",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Host address (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=12345,
+        help="Port number (default: 12345)",
+    )
+    return parser.parse_args(namespace=ServerNamespace())
+
+
 def main() -> None:
+    args = get_parser_args()
     setup_logging()
     players = [
         player.Player(
             "Ben",
             remote.RemoteInteraction(
-                host=HOST,
-                port=PORT,
+                host=args.host,
+                port=args.port,
             ),
         ),
-        create_ai_player("AI"),
     ]
-    g = game.Game(players, deck="deck.json", create_logger=True)
+    if args.n_ai > 0:
+        players.extend(
+            create_ai_player(f"AI {i + 1}") for i in range(args.n_ai)
+        )
+    g = game.Game(players, deck=args.deck, create_logger=True)
     set_ai_game_instances(players, g)
     g.start()
     while True:

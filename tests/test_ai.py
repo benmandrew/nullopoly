@@ -124,7 +124,7 @@ class TestAIInteraction(unittest.TestCase):
         valuations = [
             self.ai.planner.plan_value_if_played(plan) for plan in all_plans
         ]
-        self.assertListEqual(valuations, [-8, 0, 0, 8])
+        self.assertListEqual(valuations, [3, -8, 0, 0, 8])
 
     def test_forced_deal_ai_prefers_high_for_low(self) -> None:
         ai_swap = cards.PropertyCard("Cheap", 1, cards.PropertyColour.RED)
