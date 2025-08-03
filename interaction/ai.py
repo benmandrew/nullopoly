@@ -121,7 +121,7 @@ class Planner:
         # AI chooses the best plan based on the current hand
         all_plans = [self.generate_plans(card) for card in hand]
         flat = list(itertools.chain(*all_plans))
-        assert flat, "No plans generated from hand"
+        assert flat, f"No plans generated from hand: {hand}"
         self.plan = max(
             flat,
             key=self.plan_value_if_played,

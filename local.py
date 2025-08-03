@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import curses
 import signal
 import sys
@@ -48,18 +49,25 @@ def create_ai_player(name: str) -> player.Player:
     return p
 
 
-def run_game(stdscr: curses.window) -> None:
+class LocalNamespace(argparse.Namespace):
+    deck: str
+    players: list[str]
+    number_of_ais: int
+
+
+def run_game(stdscr: curses.window, args: LocalNamespace) -> None:
+    n_players = args.number_of_ais + len(args.players)
     players = [
         player.Player(
-            "Ben",
-            local.LocalInteraction(
-                stdscr,
-                n_players=2,
-            ),
-        ),
-        create_ai_player("AI"),
+            name,
+            local.LocalInteraction(stdscr, n_players=n_players),
+        )
+        for name in args.players
     ]
-    g = game.Game(players, deck="deck.json")
+    players.extend(
+        [create_ai_player(f"AI {i + 1}") for i in range(args.number_of_ais)],
+    )
+    g = game.Game(players, deck=args.deck, starting_cards=1)
     set_ai_game_instances(players, g)
     g.start()
     while True:
@@ -70,16 +78,36 @@ def run_game(stdscr: curses.window) -> None:
         g.end_turn()
 
 
+def get_parser_args() -> LocalNamespace:
+    parser = argparse.ArgumentParser(description="Optional app description")
+    parser.add_argument(
+        "--deck",
+        type=str,
+        default="deck.json",
+        nargs="?",
+        help="Path to the deck file (default: deck.json)",
+    )
+    parser.add_argument("--players", nargs="*", help="List of player names")
+    parser.add_argument(
+        "--number-of-ais",
+        type=int,
+        default=1,
+        help="Number of AI players (default: 1)",
+    )
+    return parser.parse_args(namespace=LocalNamespace())
+
+
 def curses_exit() -> None:
     curses.curs_set(1)  # Show the cursor again
     curses.endwin()
 
 
 def curses_main(stdscr: curses.window) -> None:
+    args = get_parser_args()
     curses.start_color()
     curses.curs_set(0)  # Hide the cursor
     try:
-        run_game(stdscr)
+        run_game(stdscr, args)
     except Exception:
         curses_exit()
         raise
