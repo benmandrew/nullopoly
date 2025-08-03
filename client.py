@@ -5,6 +5,7 @@ import json
 import signal
 import socket
 import sys
+from dataclasses import dataclass
 from types import FrameType
 from typing import Any
 
@@ -44,6 +45,88 @@ class BlockReceiver:
 def game_from_json(data: dict[str, Any]) -> game.Game:
     players = [player.Player.from_json(p, DUMMY) for p in data["players"]]
     return game.Game(players, deck=[])
+
+
+def choose_card_in_hand(
+    c: ClientState,
+    inter: local.LocalInteraction,
+    s: socket.socket,
+) -> ClientState:
+    card = inter.choose_card_in_hand(c.me)
+    if isinstance(card, cards.ActionCard) and cards.is_rent_action(
+        card.action,
+    ):
+        c.colour_options = cards.RENT_CARD_COLOURS[card.action]
+    s.sendall(int.to_bytes(c.me.hand.index(card) + 1, 1, "big"))
+    return c
+
+
+def choose_full_set_target(
+    c: ClientState,
+    inter: local.LocalInteraction,
+    s: socket.socket,
+) -> None:
+    assert c.target is not None, "Target player is not set"
+    full_sets = [
+        prop for prop in c.target.properties.values() if prop.is_complete()
+    ]
+    full_set = inter.choose_full_set_target(c.target)
+    s.sendall(int.to_bytes(full_sets.index(full_set) + 1, 1, "big"))
+
+
+def choose_property_target(
+    c: ClientState,
+    inter: local.LocalInteraction,
+    s: socket.socket,
+) -> None:
+    assert c.target is not None, "Target player is not set"
+    prop = inter.choose_property_target(c.target)
+    properties = c.target.properties_to_list()
+    s.sendall(int.to_bytes(properties.index(prop) + 1, 1, "big"))
+
+
+def choose_property_source(
+    c: ClientState,
+    inter: local.LocalInteraction,
+    s: socket.socket,
+) -> None:
+    prop = inter.choose_property_source(c.me)
+    properties = c.me.properties_to_list()
+    s.sendall(int.to_bytes(properties.index(prop) + 1, 1, "big"))
+
+
+def choose_player_target(
+    c: ClientState,
+    inter: local.LocalInteraction,
+    s: socket.socket,
+) -> ClientState:
+    excluded_players = [p for p in c.g.players if p != c.me]
+    c.target = inter.choose_player_target(excluded_players)
+    s.sendall(
+        int.to_bytes(excluded_players.index(c.target) + 1, 1, "big"),
+    )
+    return c
+
+
+def choose_rent_colour_and_amount(
+    c: ClientState,
+    inter: local.LocalInteraction,
+    s: socket.socket,
+) -> None:
+    assert c.colour_options, "No colour options available"
+    owned_colours_with_rents = c.me.owned_colours_with_rents(
+        c.colour_options,
+    )
+    colour_choice = inter.choose_rent_colour_and_amount(
+        owned_colours_with_rents,
+    )
+    s.sendall(
+        int.to_bytes(
+            owned_colours_with_rents.index(colour_choice) + 1,
+            1,
+            "big",
+        ),
+    )
 
 
 def notify_draw_my_turn(
@@ -86,6 +169,49 @@ def notify_draw_other_turn(
     return game_from_json(data_dict)
 
 
+@dataclass
+class ClientState:
+    g: game.Game
+    me: player.Player
+    target: player.Player | None
+    colour_options: list[cards.PropertyColour]
+
+
+def game_loop(
+    c: ClientState,
+    inter: local.LocalInteraction,
+    block_receiver: BlockReceiver,
+    s: socket.socket,
+) -> ClientState:
+    data = block_receiver.receive_opt()
+    if data is None:
+        return c
+    if data == "notify_draw_my_turn":
+        c.g = notify_draw_my_turn(inter, block_receiver)
+        c.me = c.g.current_player()
+    elif data == "notify_draw_other_turn":
+        c.g = notify_draw_other_turn(inter, block_receiver)
+    elif data == "choose_card_in_hand":
+        c = choose_card_in_hand(c, inter, s)
+    elif data == "choose_full_set_target":
+        choose_full_set_target(c, inter, s)
+    elif data == "choose_property_target":
+        choose_property_target(c, inter, s)
+    elif data == "choose_property_source":
+        choose_property_source(c, inter, s)
+    elif data == "choose_player_target":
+        c = choose_player_target(c, inter, s)
+    elif data == "choose_action_usage":
+        choice = inter.choose_action_usage()
+        s.sendall(int.to_bytes(choice, 1, "big"))
+    elif data == "choose_rent_colour_and_amount":
+        choose_rent_colour_and_amount(c, inter, s)
+    elif data == "log":
+        message = block_receiver.receive()
+        inter.log(message)
+    return c
+
+
 def run_game(stdscr: curses.window) -> None:
     g: game.Game = game.Game(
         [],
@@ -103,67 +229,19 @@ def run_game(stdscr: curses.window) -> None:
         s.connect((HOST, PORT))
         block_receiver = BlockReceiver(s)
         s.sendall(str(me.index).encode("utf-8"))
+        c = ClientState(
+            g,
+            me,
+            target,
+            colour_options,
+        )
         while True:
-            data = block_receiver.receive_opt()
-            if data is None:
-                continue
-            if data == "notify_draw_my_turn":
-                g = notify_draw_my_turn(inter, block_receiver)
-                me = g.current_player()
-            elif data == "notify_draw_other_turn":
-                g = notify_draw_other_turn(inter, block_receiver)
-            elif data == "choose_card_in_hand":
-                card = inter.choose_card_in_hand(me)
-                if isinstance(card, cards.ActionCard) and cards.is_rent_action(
-                    card.action,
-                ):
-                    colour_options = cards.RENT_CARD_COLOURS[card.action]
-                s.sendall(int.to_bytes(me.hand.index(card) + 1, 1, "big"))
-            elif data == "choose_full_set_target":
-                assert target is not None, "Target player is not set"
-                full_sets = [
-                    prop
-                    for prop in target.properties.values()
-                    if prop.is_complete()
-                ]
-                full_set = inter.choose_full_set_target(target)
-                s.sendall(int.to_bytes(full_sets.index(full_set) + 1, 1, "big"))
-            elif data == "choose_property_target":
-                assert target is not None, "Target player is not set"
-                prop = inter.choose_property_target(target)
-                properties = target.properties_to_list()
-                s.sendall(int.to_bytes(properties.index(prop) + 1, 1, "big"))
-            elif data == "choose_property_source":
-                prop = inter.choose_property_source(me)
-                properties = me.properties_to_list()
-                s.sendall(int.to_bytes(properties.index(prop) + 1, 1, "big"))
-            elif data == "choose_player_target":
-                excluded_players = [p for p in g.players if p != me]
-                target = inter.choose_player_target(excluded_players)
-                s.sendall(
-                    int.to_bytes(excluded_players.index(target) + 1, 1, "big"),
-                )
-            elif data == "choose_action_usage":
-                choice = inter.choose_action_usage()
-                s.sendall(int.to_bytes(choice, 1, "big"))
-            elif data == "choose_rent_colour_and_amount":
-                assert colour_options, "No colour options available"
-                owned_colours_with_rents = me.owned_colours_with_rents(
-                    colour_options,
-                )
-                colour_choice = inter.choose_rent_colour_and_amount(
-                    owned_colours_with_rents,
-                )
-                s.sendall(
-                    int.to_bytes(
-                        owned_colours_with_rents.index(colour_choice) + 1,
-                        1,
-                        "big",
-                    ),
-                )
-            elif data == "log":
-                message = block_receiver.receive()
-                inter.log(message)
+            c = game_loop(
+                c,
+                inter,
+                block_receiver,
+                s,
+            )
 
 
 def curses_exit() -> None:
