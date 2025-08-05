@@ -258,7 +258,8 @@ def run_game(stdscr: curses.window, args: ClientNamespace) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((args.host, args.port))
         block_receiver = BlockReceiver(s)
-        s.sendall(str(me.index).encode("utf-8"))
+        send_string = f"{me.name}/{me.index!s}"
+        s.sendall(send_string.encode("utf-8"))
         c = ClientState(
             g,
             me,

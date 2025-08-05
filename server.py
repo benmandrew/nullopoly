@@ -2,6 +2,8 @@ import argparse
 import json
 import logging.config
 import pathlib
+import select
+import socket
 
 import game
 import player
@@ -102,18 +104,41 @@ def create_ai_player(name: str) -> player.Player:
     return p
 
 
+def create_remote_player(sock: socket.socket) -> player.Player:
+    inter = remote.RemoteInteraction(sock)
+    p = player.Player(
+        inter.name,
+        inter,
+    )
+    p.index = inter.index
+    return p
+
+
+def run_lobby(args: ServerNamespace) -> list[player.Player]:
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind((args.host, args.port))
+    server_socket.listen(5)
+    players: list[player.Player] = []
+    read_sockets: list[socket.socket] = [server_socket]
+    while len(players) < 2:
+        ready_to_read: list[socket.socket]
+        ready_to_read, _, _ = select.select(read_sockets, [], [])
+        for sock in ready_to_read:
+            if sock is server_socket:
+                client_socket, addr = server_socket.accept()
+                logger.info("Accepted connection from %s", addr)
+                players.append(create_remote_player(client_socket))
+                read_sockets.append(client_socket)
+            # else:
+            #     data = sock.recv(1024)
+    return players
+
+
 def main() -> None:
     args = get_parser_args()
     setup_logging()
-    players = [
-        player.Player(
-            "Ben",
-            remote.RemoteInteraction(
-                host=args.host,
-                port=args.port,
-            ),
-        ),
-    ]
+    players = run_lobby(args)
     if args.n_ai > 0:
         players.extend(
             create_ai_player(f"AI {i + 1}") for i in range(args.n_ai)
