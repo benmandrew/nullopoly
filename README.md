@@ -25,7 +25,7 @@ Or, run the `client.py` and `server.py` scripts to play over the network:
  python server.py --n-players 1 --n-ais 2 --host 127.0.0.1 --port 54321
 ```
 
-and then
+and in a different terminal
 
 ```sh
 python client.py --name Alice --host 127.0.0.1 --port 54321
