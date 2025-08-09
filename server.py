@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def setup_logging() -> None:
-    config_file = pathlib.Path("logging.conf")
+    config_file = pathlib.Path("resources/logging.conf")
     with config_file.open(encoding="utf-8") as f:
         config = json.load(f)
     logging.config.dictConfig(config)
@@ -36,9 +36,9 @@ def get_parser_args() -> ServerNamespace:
     parser.add_argument(
         "--deck",
         type=pathlib.Path,
-        default=pathlib.Path("deck.json"),
+        default=pathlib.Path("resources/deck.json"),
         nargs="?",
-        help="Path to the deck file (default: deck.json)",
+        help="Path to the deck file (default: resources/deck.json)",
     )
     parser.add_argument(
         "--n-players",

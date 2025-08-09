@@ -30,9 +30,9 @@ def get_parser_args() -> LocalNamespace:
     parser.add_argument(
         "--deck",
         type=pathlib.Path,
-        default=pathlib.Path("deck.json"),
+        default=pathlib.Path("resources/deck.json"),
         nargs="?",
-        help="Path to the deck file (default: deck.json)",
+        help="Path to the deck file (default: resources/deck.json)",
     )
     parser.add_argument("--players", nargs="*", help="List of player names")
     parser.add_argument(
@@ -93,7 +93,7 @@ def run_game(stdscr: curses.window, args: LocalNamespace) -> None:
     players.extend(
         [create_ai_player(f"AI {i + 1}") for i in range(args.n_ais)],
     )
-    g = game.Game(players, deck=args.deck, starting_cards=1)
+    g = game.Game(players, deck=args.deck)
     set_ai_game_instances(players, g)
     g.start()
     while True:
