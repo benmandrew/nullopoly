@@ -4,9 +4,12 @@ import curses
 import queue
 import threading
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-import player
 from window import common, hand, log, table
+
+if TYPE_CHECKING:
+    import player
 
 
 @dataclass(frozen=True)

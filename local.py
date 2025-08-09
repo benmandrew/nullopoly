@@ -5,24 +5,27 @@ import curses
 import pathlib
 import signal
 import sys
-from types import FrameType
+from typing import TYPE_CHECKING
 
 import game
 import player
 from interaction import ai, dummy, local
 from window import common
 
+if TYPE_CHECKING:
+    from types import FrameType
+
 
 class LocalNamespace(argparse.Namespace):
     deck: pathlib.Path  # Path to the deck file
     players: list[str]
-    n_ai: int  # Number of AI players
+    n_ais: int  # Number of AI players
 
 
 def get_parser_args() -> LocalNamespace:
     parser = argparse.ArgumentParser(
         description="Run a local game of Nullopoly.",
-        epilog="Example usage: python local.py --players Alice Bob --n-ai 2 --deck custom_deck.json",  # noqa: E501, pylint: disable=line-too-long
+        epilog="Example usage: python local.py --players Alice Bob --n-ais 2 --deck custom_deck.json",  # noqa: E501, pylint: disable=line-too-long
     )
     parser.add_argument(
         "--deck",
@@ -33,7 +36,7 @@ def get_parser_args() -> LocalNamespace:
     )
     parser.add_argument("--players", nargs="*", help="List of player names")
     parser.add_argument(
-        "--n-ai",
+        "--n-ais",
         type=int,
         default=1,
         help="Number of AI players (default: 1)",
@@ -79,7 +82,7 @@ def create_ai_player(name: str) -> player.Player:
 
 
 def run_game(stdscr: curses.window, args: LocalNamespace) -> None:
-    n_players = args.n_ai + len(args.players)
+    n_players = args.n_ais + len(args.players)
     players = [
         player.Player(
             name,
@@ -88,7 +91,7 @@ def run_game(stdscr: curses.window, args: LocalNamespace) -> None:
         for name in args.players
     ]
     players.extend(
-        [create_ai_player(f"AI {i + 1}") for i in range(args.number_of_ais)],
+        [create_ai_player(f"AI {i + 1}") for i in range(args.n_ais)],
     )
     g = game.Game(players, deck=args.deck, starting_cards=1)
     set_ai_game_instances(players, g)

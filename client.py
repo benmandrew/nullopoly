@@ -7,13 +7,15 @@ import signal
 import socket
 import sys
 from dataclasses import dataclass
-from types import FrameType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import cards
 import game
 import player
 from interaction import dummy, local
+
+if TYPE_CHECKING:
+    from types import FrameType
 
 
 class ClientNamespace(argparse.Namespace):
@@ -25,7 +27,7 @@ class ClientNamespace(argparse.Namespace):
 def get_parser_args() -> ClientNamespace:
     parser = argparse.ArgumentParser(
         description="Run a client instance of Nullopoly.",
-        epilog="Example usage: python client.py --name Ben --host 127.0.0.1 --port 12345",  # noqa: E501, pylint: disable=line-too-long
+        epilog="Example usage: python client.py --name Ben --host 127.0.0.1 --port 54321",  # noqa: E501, pylint: disable=line-too-long
     )
     parser.add_argument(
         "--name",
@@ -41,8 +43,8 @@ def get_parser_args() -> ClientNamespace:
     parser.add_argument(
         "--port",
         type=int,
-        default=12345,
-        help="Port number (default: 12345)",
+        default=54321,
+        help="Port number (default: 54321)",
     )
     return parser.parse_args(namespace=ClientNamespace())
 
@@ -207,7 +209,7 @@ class ClientState:
     colour_options: list[cards.PropertyColour]
 
 
-def game_loop(
+def game_loop(  # noqa: C901
     c: ClientState,
     inter: local.LocalInteraction,
     block_receiver: BlockReceiver,

@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import itertools
 import logging
-import uuid
 from copy import deepcopy
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import cards
-import game
-import player
 from interaction import dummy, interaction
+
+if TYPE_CHECKING:
+    import uuid
+
+    import game
+    import player
 
 
 def copy_game(g: game.Game, me: player.Player) -> game.Game:

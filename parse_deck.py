@@ -49,6 +49,48 @@ def parse_money_card(card_data: dict[str, Any], idx: int) -> cards.MoneyCard:
     return cards.MoneyCard(card_data["value"])
 
 
+def parse_actions(data: dict[str, Any]) -> list[cards.Card]:
+    deck: list[cards.Card] = []
+    action_cards = data.get("action", [])
+    if not isinstance(action_cards, list):
+        msg = "'action' must be a list."
+        raise TypeError(msg)
+    for idx, card_data in enumerate(action_cards):
+        if not isinstance(card_data, dict):
+            msg = f"Action card at index {idx} is not a JSON object."
+            raise TypeError(msg)
+        deck.append(parse_action_card(card_data, idx))
+    return deck
+
+
+def parse_properties(data: dict[str, Any]) -> list[cards.Card]:
+    deck: list[cards.Card] = []
+    property_cards = data.get("property", [])
+    if not isinstance(property_cards, list):
+        msg = "'property' must be a list."
+        raise TypeError(msg)
+    for idx, card_data in enumerate(property_cards):
+        if not isinstance(card_data, dict):
+            msg = f"Property card at index {idx} is not a JSON object."
+            raise TypeError(msg)
+        deck.append(parse_property_card(card_data, idx))
+    return deck
+
+
+def parse_money(data: dict[str, Any]) -> list[cards.Card]:
+    deck: list[cards.Card] = []
+    money_cards = data.get("money", [])
+    if not isinstance(money_cards, list):
+        msg = "'money' must be a list."
+        raise TypeError(msg)
+    for idx, card_data in enumerate(money_cards):
+        if not isinstance(card_data, dict):
+            msg = f"Money card at index {idx} is not a JSON object."
+            raise TypeError(msg)
+        deck.append(parse_money_card(card_data, idx))
+    return deck
+
+
 def from_json(filepath: pathlib.Path) -> list[cards.Card]:
     if not filepath.is_file():
         msg = f"Deck file '{filepath}' does not exist."
@@ -62,32 +104,4 @@ def from_json(filepath: pathlib.Path) -> list[cards.Card]:
     if not isinstance(data, dict):
         msg = "Deck JSON must be a dictionary with card type keys."
         raise TypeError(msg)
-    deck: list[cards.Card] = []
-    property_cards = data.get("property", [])
-    if not isinstance(property_cards, list):
-        msg = "'property' must be a list."
-        raise TypeError(msg)
-    for idx, card_data in enumerate(property_cards):
-        if not isinstance(card_data, dict):
-            msg = f"Property card at index {idx} is not a JSON object."
-            raise TypeError(msg)
-        deck.append(parse_property_card(card_data, idx))
-    action_cards = data.get("action", [])
-    if not isinstance(action_cards, list):
-        msg = "'action' must be a list."
-        raise TypeError(msg)
-    for idx, card_data in enumerate(action_cards):
-        if not isinstance(card_data, dict):
-            msg = f"Action card at index {idx} is not a JSON object."
-            raise TypeError(msg)
-        deck.append(parse_action_card(card_data, idx))
-    money_cards = data.get("money", [])
-    if not isinstance(money_cards, list):
-        msg = "'money' must be a list."
-        raise TypeError(msg)
-    for idx, card_data in enumerate(money_cards):
-        if not isinstance(card_data, dict):
-            msg = f"Money card at index {idx} is not a JSON object."
-            raise TypeError(msg)
-        deck.append(parse_money_card(card_data, idx))
-    return deck
+    return parse_properties(data) + parse_actions(data) + parse_money(data)

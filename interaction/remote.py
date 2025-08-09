@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import json
-import socket
 import uuid
 from typing import TYPE_CHECKING
 
-import cards
 from interaction import interaction
 
 if TYPE_CHECKING:
+    import socket
+
+    import cards
     import player
 
 

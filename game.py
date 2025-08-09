@@ -3,13 +3,16 @@ from __future__ import annotations
 import logging
 import pathlib
 import random
-import uuid
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import cards
 import parse_deck
-import player
 from window import common
+
+if TYPE_CHECKING:
+    import uuid
+
+    import player
 
 
 class WonError(Exception):

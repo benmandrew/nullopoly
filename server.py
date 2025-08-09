@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def setup_logging() -> None:
-    config_file = pathlib.Path("log_config.json")
+    config_file = pathlib.Path("logging.conf")
     with config_file.open(encoding="utf-8") as f:
         config = json.load(f)
     logging.config.dictConfig(config)
@@ -22,7 +22,8 @@ def setup_logging() -> None:
 
 class ServerNamespace(argparse.Namespace):
     deck: pathlib.Path  # Path to the deck file
-    n_ai: int  # Number of AI players
+    n_ais: int  # Number of AI players
+    n_players: int  # Number of remote players
     host: str
     port: int
 
@@ -30,7 +31,7 @@ class ServerNamespace(argparse.Namespace):
 def get_parser_args() -> ServerNamespace:
     parser = argparse.ArgumentParser(
         description="Run a server instance of Nullopoly.",
-        epilog="Example usage: python server.py --n-ai 2 --deck custom_deck.json --host 127.0.0.1 --port 12345",  # noqa: E501, pylint: disable=line-too-long
+        epilog="Example usage: python server.py --n-ais 2 --deck custom_deck.json --host 127.0.0.1 --port 54321",  # noqa: E501, pylint: disable=line-too-long
     )
     parser.add_argument(
         "--deck",
@@ -40,7 +41,13 @@ def get_parser_args() -> ServerNamespace:
         help="Path to the deck file (default: deck.json)",
     )
     parser.add_argument(
-        "--n-ai",
+        "--n-players",
+        type=int,
+        default=1,
+        help="Number of remote players; the game will start when all players are connected (default: 1)",  # noqa: E501, pylint: disable=line-too-long
+    )
+    parser.add_argument(
+        "--n-ais",
         type=int,
         default=1,
         help="Number of AI players (default: 1)",
@@ -54,8 +61,8 @@ def get_parser_args() -> ServerNamespace:
     parser.add_argument(
         "--port",
         type=int,
-        default=12345,
-        help="Port number (default: 12345)",
+        default=54321,
+        help="Port number (default: 54321)",
     )
     return parser.parse_args(namespace=ServerNamespace())
 
@@ -121,7 +128,7 @@ def run_lobby(args: ServerNamespace) -> list[player.Player]:
     server_socket.listen(5)
     players: list[player.Player] = []
     read_sockets: list[socket.socket] = [server_socket]
-    while len(players) < 2:
+    while len(players) < args.n_players:
         ready_to_read: list[socket.socket]
         ready_to_read, _, _ = select.select(read_sockets, [], [])
         for sock in ready_to_read:
@@ -130,8 +137,6 @@ def run_lobby(args: ServerNamespace) -> list[player.Player]:
                 logger.info("Accepted connection from %s", addr)
                 players.append(create_remote_player(client_socket))
                 read_sockets.append(client_socket)
-            # else:
-            #     data = sock.recv(1024)
     return players
 
 
@@ -139,9 +144,9 @@ def main() -> None:
     args = get_parser_args()
     setup_logging()
     players = run_lobby(args)
-    if args.n_ai > 0:
+    if args.n_ais > 0:
         players.extend(
-            create_ai_player(f"AI {i + 1}") for i in range(args.n_ai)
+            create_ai_player(f"AI {i + 1}") for i in range(args.n_ais)
         )
     g = game.Game(players, deck=args.deck, create_logger=True)
     set_ai_game_instances(players, g)
