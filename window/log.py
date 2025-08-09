@@ -18,7 +18,7 @@ class Log:
 
     def log(self, message: str) -> None:
         if len(self.log_lines) >= 3:
-            self.log_lines.pop()
+            self.log_lines.pop(0)
         self.log_lines.append(message)
         self.log_idx += 1
         self.draw()

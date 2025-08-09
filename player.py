@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import copy
 import itertools
+import uuid
+from typing import Any, cast
 
 import cards
-from interaction import interaction
+from interaction import dummy, interaction
 
 
 class PropertySet:
@@ -42,13 +45,28 @@ class PropertySet:
             return 0
         return cards.PROPERTY_RENTS[self.colour][len(self.cards) - 1]
 
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "colour": self.colour.name,
+            "required_count": self.required_count,
+            "cards": [card.to_json() for card in self.cards],
+        }
+
+    @staticmethod
+    def from_json(data: dict[str, Any]) -> PropertySet:
+        colour = cards.PropertyColour[data["colour"]]
+        required_count = data["required_count"]
+        prop_set = PropertySet(colour, required_count)
+        for card_data in data["cards"]:
+            card = cards.PropertyCard.from_json(card_data)
+            prop_set.add(card)
+        return prop_set
+
 
 class Player:
-    global_index = 0
 
     def __init__(self, name: str, inter: interaction.Interaction) -> None:
-        self.index = Player.global_index
-        Player.global_index += 1
+        self.index = uuid.uuid4()
         self.name = name
         self.inter = inter
         self.hand: list[cards.Card] = []
@@ -214,3 +232,45 @@ class Player:
         """Choose a player from the list of players, excluding self."""
         players = [p for p in players if p != self]
         return self.inter.choose_player_target(players)
+
+    def copy_visible(self) -> Player:
+        """Create a copy of the player with only visible attributes."""
+        new_player = Player(self.name, dummy.DummyInteraction())
+        new_player.index = self.index
+        new_player.hand = []
+        new_player.properties = copy.deepcopy(self.properties)
+        new_player.bank = list(self.bank)
+        return new_player
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "index": str(self.index),
+            "name": self.name,
+            "hand": [card.to_json() for card in self.hand],
+            "properties": {
+                colour.name: prop_set.to_json()
+                for colour, prop_set in self.properties.items()
+            },
+            "bank": [card.to_json() for card in self.bank],
+        }
+
+    @staticmethod
+    def from_json(
+        data: dict[str, Any],
+        inter: interaction.Interaction,
+    ) -> Player:
+        player = Player(data["name"], inter)
+        player.index = data["index"]
+        player.hand = [cards.from_json(card_data) for card_data in data["hand"]]
+        player.properties = {
+            cards.PropertyColour[colour]: PropertySet.from_json(prop_set_data)
+            for colour, prop_set_data in data["properties"].items()
+        }
+        player.bank = [
+            cast(
+                "cards.MoneyCard | cards.ActionCard",
+                cards.from_json(card_data),
+            )
+            for card_data in data["bank"]
+        ]
+        return player

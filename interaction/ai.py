@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import itertools
+import logging
 from copy import deepcopy
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import cards
-import game
-import player
 from interaction import dummy, interaction
+
+if TYPE_CHECKING:
+    import uuid
+
+    import game
+    import player
 
 
 def copy_game(g: game.Game, me: player.Player) -> game.Game:
@@ -21,6 +27,9 @@ def copy_game(g: game.Game, me: player.Player) -> game.Game:
                 continue
             p.inter = dummy.DummyInteraction()
         g_copy = deepcopy(g)
+        g_copy.logger = logging.getLogger(
+            "dummy",
+        )  # Reset logger to avoid logging in copied game
     finally:
         for p, orig in zip(g.players, original_inters):
             p.inter = orig
@@ -116,7 +125,7 @@ class Planner:
         # AI chooses the best plan based on the current hand
         all_plans = [self.generate_plans(card) for card in hand]
         flat = list(itertools.chain(*all_plans))
-        assert flat, "No plans generated from hand"
+        assert flat, f"No plans generated from hand: {hand}"
         self.plan = max(
             flat,
             key=self.plan_value_if_played,
@@ -207,7 +216,7 @@ class Planner:
         if isinstance(card, cards.MoneyCard):
             return [MoneyPlan(card)]
         if isinstance(card, cards.ActionCard):
-            return self.generate_action_plans(card)
+            return [MoneyPlan(card), *self.generate_action_plans(card)]
         msg = f"Unknown card type: {type(card)}"
         raise TypeError(
             msg,
@@ -226,7 +235,7 @@ class Planner:
 class AIInteraction(interaction.Interaction):
     """Interaction class for AI player making decisions automatically."""
 
-    def __init__(self, me_idx: int) -> None:
+    def __init__(self, me_idx: uuid.UUID) -> None:
         self.me_idx = me_idx  # index of the AI player
 
         self.planner: Planner | None = None

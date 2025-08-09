@@ -1,21 +1,25 @@
+from typing import TYPE_CHECKING
+
 import cards
-import player
 from interaction import interaction
+
+if TYPE_CHECKING:
+    import player
 
 
 class DummyInteraction(interaction.Interaction):
-    def choose_card_in_hand(self, p: player.Player) -> cards.Card:
+    def choose_card_in_hand(self, p: "player.Player") -> cards.Card:
         raise NotImplementedError
 
     def choose_full_set_target(
         self,
-        target: player.Player,
-    ) -> player.PropertySet:
+        target: "player.Player",
+    ) -> "player.PropertySet":
         raise NotImplementedError
 
     def choose_property_source(
         self,
-        me: player.Player,
+        me: "player.Player",
         without_full_sets: bool = False,
     ) -> cards.PropertyCard:
         properties = me.properties_to_list(
@@ -26,7 +30,7 @@ class DummyInteraction(interaction.Interaction):
 
     def choose_property_target(
         self,
-        target: player.Player,
+        target: "player.Player",
         without_full_sets: bool = False,
     ) -> cards.PropertyCard:
         properties = target.properties_to_list(
@@ -37,8 +41,8 @@ class DummyInteraction(interaction.Interaction):
 
     def choose_player_target(
         self,
-        players: list[player.Player],
-    ) -> player.Player:
+        players: list["player.Player"],
+    ) -> "player.Player":
         raise NotImplementedError
 
     def choose_action_usage(self) -> int:
@@ -55,13 +59,13 @@ class DummyInteraction(interaction.Interaction):
 
     def notify_draw_my_turn(
         self,
-        current_player: player.Player,
-        players: list[player.Player],
+        current_player: "player.Player",
+        players: list["player.Player"],
         n_cards_played: int,
     ) -> None:
         raise NotImplementedError
 
-    def notify_draw_other_turn(self, players: list[player.Player]) -> None:
+    def notify_draw_other_turn(self, players: list["player.Player"]) -> None:
         raise NotImplementedError
 
     def notify_turn_over(self, next_player_name: str) -> None:

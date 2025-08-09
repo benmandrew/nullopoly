@@ -8,9 +8,9 @@ from interaction import ai, dummy
 
 class TestAIInteraction(unittest.TestCase):
     def setUp(self) -> None:
-        player.Player.global_index = 0
-        self.ai = ai.AIInteraction(me_idx=0)
-        self.p1 = player.Player("AI", self.ai)
+        self.p1 = player.Player("AI", dummy.DummyInteraction())
+        self.ai = ai.AIInteraction(me_idx=self.p1.index)
+        self.p1.inter = self.ai
         self.p2 = player.Player("Human", dummy.DummyInteraction())
         self.g = game.Game([self.p1, self.p2], [])
         self.ai.set_game_instance(self.g)
@@ -124,7 +124,7 @@ class TestAIInteraction(unittest.TestCase):
         valuations = [
             self.ai.planner.plan_value_if_played(plan) for plan in all_plans
         ]
-        self.assertListEqual(valuations, [-8, 0, 0, 8])
+        self.assertListEqual(valuations, [3, -8, 0, 0, 8])
 
     def test_forced_deal_ai_prefers_high_for_low(self) -> None:
         ai_swap = cards.PropertyCard("Cheap", 1, cards.PropertyColour.RED)

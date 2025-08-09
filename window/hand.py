@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import curses
-import queue
+from typing import TYPE_CHECKING
 
 import cards
-import player
 from window import common
+
+if TYPE_CHECKING:
+    import queue
+
+    import player
 
 CARD_HEIGHT = 5
 

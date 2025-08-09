@@ -1,14 +1,47 @@
 from __future__ import annotations
 
+import argparse
 import curses
+import pathlib
 import signal
 import sys
-from types import FrameType
+from typing import TYPE_CHECKING
 
 import game
 import player
-from interaction import ai, local
+from interaction import ai, dummy, local
 from window import common
+
+if TYPE_CHECKING:
+    from types import FrameType
+
+
+class LocalNamespace(argparse.Namespace):
+    deck: pathlib.Path  # Path to the deck file
+    players: list[str]
+    n_ais: int  # Number of AI players
+
+
+def get_parser_args() -> LocalNamespace:
+    parser = argparse.ArgumentParser(
+        description="Run a local game of Nullopoly.",
+        epilog="Example usage: python local.py --players Alice Bob --n-ais 2 --deck custom_deck.json",  # noqa: E501, pylint: disable=line-too-long
+    )
+    parser.add_argument(
+        "--deck",
+        type=pathlib.Path,
+        default=pathlib.Path("deck.json"),
+        nargs="?",
+        help="Path to the deck file (default: deck.json)",
+    )
+    parser.add_argument("--players", nargs="*", help="List of player names")
+    parser.add_argument(
+        "--n-ais",
+        type=int,
+        default=1,
+        help="Number of AI players (default: 1)",
+    )
+    return parser.parse_args(namespace=LocalNamespace())
 
 
 def game_loop(g: game.Game) -> game.Game:
@@ -38,18 +71,29 @@ def set_ai_game_instances(players: list[player.Player], g: game.Game) -> None:
             p.inter.set_game_instance(g)
 
 
-def run_game(stdscr: curses.window) -> None:
+def create_ai_player(name: str) -> player.Player:
+    p = player.Player(
+        name,
+        dummy.DummyInteraction(),
+    )
+    inter = ai.AIInteraction(p.index)
+    p.inter = inter
+    return p
+
+
+def run_game(stdscr: curses.window, args: LocalNamespace) -> None:
+    n_players = args.n_ais + len(args.players)
     players = [
         player.Player(
-            "Ben",
-            local.LocalInteraction(
-                stdscr,
-                n_players=2,
-            ),
-        ),
-        player.Player("AI", ai.AIInteraction(1)),
+            name,
+            local.LocalInteraction(stdscr, n_players=n_players),
+        )
+        for name in args.players
     ]
-    g = game.Game(players, deck="deck.json")
+    players.extend(
+        [create_ai_player(f"AI {i + 1}") for i in range(args.n_ais)],
+    )
+    g = game.Game(players, deck=args.deck, starting_cards=1)
     set_ai_game_instances(players, g)
     g.start()
     while True:
@@ -66,10 +110,11 @@ def curses_exit() -> None:
 
 
 def curses_main(stdscr: curses.window) -> None:
+    args = get_parser_args()
     curses.start_color()
     curses.curs_set(0)  # Hide the cursor
     try:
-        run_game(stdscr)
+        run_game(stdscr, args)
     except Exception:
         curses_exit()
         raise
@@ -81,5 +126,8 @@ def signal_handler(_sig: int, _frame: FrameType | None) -> None:
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal_handler)
-    curses.wrapper(curses_main)
+    if "--help" in sys.argv or "-h" in sys.argv:
+        get_parser_args()
+    else:
+        signal.signal(signal.SIGINT, signal_handler)
+        curses.wrapper(curses_main)

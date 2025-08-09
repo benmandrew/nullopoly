@@ -7,7 +7,6 @@ import player
 
 class TestChargeMoneyPayment(unittest.TestCase):
     def setUp(self) -> None:
-        player.Player.global_index = 0
         mock_interaction = Mock()
         self.p = player.Player("Test", mock_interaction)
 
