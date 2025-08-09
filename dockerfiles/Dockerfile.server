@@ -1,0 +1,15 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY . .
+
+ENV N_PLAYERS=1
+ENV N_AIS=1
+# 0.0.0.0 accepts connections from outside the container
+ENV HOST=0.0.0.0
+ENV PORT=54321
+
+EXPOSE ${PORT}
+
+CMD ["sh", "-c", "python server.py --n-players ${N_PLAYERS} --n-ais ${N_AIS} --host ${HOST} --port ${PORT}"]
