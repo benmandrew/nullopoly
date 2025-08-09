@@ -5,15 +5,12 @@ import curses
 import pathlib
 import signal
 import sys
-from typing import TYPE_CHECKING
 
 import game
 import player
-from interaction import ai, dummy, local
+import util
+from interaction import local
 from window import common
-
-if TYPE_CHECKING:
-    from types import FrameType
 
 
 class LocalNamespace(argparse.Namespace):
@@ -65,22 +62,6 @@ def game_loop(g: game.Game) -> game.Game:
     return g
 
 
-def set_ai_game_instances(players: list[player.Player], g: game.Game) -> None:
-    for p in players:
-        if isinstance(p.inter, ai.AIInteraction):
-            p.inter.set_game_instance(g)
-
-
-def create_ai_player(name: str) -> player.Player:
-    p = player.Player(
-        name,
-        dummy.DummyInteraction(),
-    )
-    inter = ai.AIInteraction(p.index)
-    p.inter = inter
-    return p
-
-
 def run_game(stdscr: curses.window, args: LocalNamespace) -> None:
     n_players = args.n_ais + len(args.players)
     players = [
@@ -91,10 +72,10 @@ def run_game(stdscr: curses.window, args: LocalNamespace) -> None:
         for name in args.players
     ]
     players.extend(
-        [create_ai_player(f"AI {i + 1}") for i in range(args.n_ais)],
+        [util.create_ai_player(f"AI {i + 1}") for i in range(args.n_ais)],
     )
     g = game.Game(players, deck=args.deck)
-    set_ai_game_instances(players, g)
+    util.set_ai_game_instances(players, g)
     g.start()
     while True:
         try:
@@ -104,11 +85,6 @@ def run_game(stdscr: curses.window, args: LocalNamespace) -> None:
         g.end_turn()
 
 
-def curses_exit() -> None:
-    curses.curs_set(1)  # Show the cursor again
-    curses.endwin()
-
-
 def curses_main(stdscr: curses.window) -> None:
     args = get_parser_args()
     curses.start_color()
@@ -116,18 +92,14 @@ def curses_main(stdscr: curses.window) -> None:
     try:
         run_game(stdscr, args)
     except Exception:
-        curses_exit()
+        util.curses_exit()
         raise
 
 
-def signal_handler(_sig: int, _frame: FrameType | None) -> None:
-    curses_exit()
-    sys.exit(0)
-
-
 if __name__ == "__main__":
+    util.check_python_version()
     if "--help" in sys.argv or "-h" in sys.argv:
         get_parser_args()
     else:
-        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGINT, util.curses_signal_handler)
         curses.wrapper(curses_main)

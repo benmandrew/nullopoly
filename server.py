@@ -1,23 +1,16 @@
 import argparse
-import json
-import logging.config
+import logging
 import pathlib
 import select
 import socket
 
 import game
 import player
-from interaction import ai, dummy, remote
+import util
+from interaction import remote
 from window import common
 
 logger = logging.getLogger(__name__)
-
-
-def setup_logging() -> None:
-    config_file = pathlib.Path("resources/logging.conf")
-    with config_file.open(encoding="utf-8") as f:
-        config = json.load(f)
-    logging.config.dictConfig(config)
 
 
 class ServerNamespace(argparse.Namespace):
@@ -88,27 +81,11 @@ def game_loop(g: game.Game) -> game.Game:
     return g
 
 
-def set_ai_game_instances(players: list[player.Player], g: game.Game) -> None:
-    for p in players:
-        if isinstance(p.inter, ai.AIInteraction):
-            p.inter.set_game_instance(g)
-
-
 def set_remote_player_indexes(players: list[player.Player]) -> None:
     for p in players:
         if isinstance(p.inter, remote.RemoteInteraction):
             assert p.inter.index is not None, "Remote player index must be set"
             p.index = p.inter.index
-
-
-def create_ai_player(name: str) -> player.Player:
-    p = player.Player(
-        name,
-        dummy.DummyInteraction(),
-    )
-    inter = ai.AIInteraction(p.index)
-    p.inter = inter
-    return p
 
 
 def create_remote_player(sock: socket.socket) -> player.Player:
@@ -142,14 +119,14 @@ def run_lobby(args: ServerNamespace) -> list[player.Player]:
 
 def main() -> None:
     args = get_parser_args()
-    setup_logging()
+    util.setup_logging()
     players = run_lobby(args)
     if args.n_ais > 0:
         players.extend(
-            create_ai_player(f"AI {i + 1}") for i in range(args.n_ais)
+            util.create_ai_player(f"AI {i + 1}") for i in range(args.n_ais)
         )
     g = game.Game(players, deck=args.deck, create_logger=True)
-    set_ai_game_instances(players, g)
+    util.set_ai_game_instances(players, g)
     g.start()
     while True:
         try:
@@ -160,4 +137,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    util.check_python_version()
     main()

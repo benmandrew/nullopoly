@@ -7,15 +7,13 @@ import signal
 import socket
 import sys
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import cards
 import game
 import player
+import util
 from interaction import dummy, local
-
-if TYPE_CHECKING:
-    from types import FrameType
 
 
 class ClientNamespace(argparse.Namespace):
@@ -256,7 +254,6 @@ def run_game(stdscr: curses.window, args: ClientNamespace) -> None:
     inter = local.LocalInteraction(stdscr, n_players=1)
     target: player.Player | None = None
     colour_options: list[cards.PropertyColour] = []
-
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((args.host, args.port))
         block_receiver = BlockReceiver(s)
@@ -277,11 +274,6 @@ def run_game(stdscr: curses.window, args: ClientNamespace) -> None:
             )
 
 
-def curses_exit() -> None:
-    curses.curs_set(1)  # Show the cursor again
-    curses.endwin()
-
-
 def curses_main(stdscr: curses.window) -> None:
     args = get_parser_args()
     curses.start_color()
@@ -289,18 +281,14 @@ def curses_main(stdscr: curses.window) -> None:
     try:
         run_game(stdscr, args)
     except Exception:
-        curses_exit()
+        util.curses_exit()
         raise
 
 
-def signal_handler(_sig: int, _frame: FrameType | None) -> None:
-    curses_exit()
-    sys.exit(0)
-
-
 if __name__ == "__main__":
+    util.check_python_version()
     if "--help" in sys.argv or "-h" in sys.argv:
         get_parser_args()
     else:
-        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGINT, util.curses_signal_handler)
         curses.wrapper(curses_main)
