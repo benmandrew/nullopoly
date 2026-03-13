@@ -21,10 +21,10 @@ ruff-fix:
 	python3 -m ruff check . --fix
 
 pylint:
-	find . -name ".venv" -prune -o -name "*.py" -print | xargs python3 -m pylint --score=n --reports=n --output-format=colorized
+	find . \( -name ".venv" -o -name "venv" \) -prune -o -name "*.py" -print | xargs python3 -m pylint --score=n --reports=n --output-format=colorized
 
 mypy:
-	find . -name ".venv" -prune -o -name "*.py" -print | xargs python3 -m mypy
+	find . \( -name ".venv" -o -name "venv" \) -prune -o -name "*.py" -print | xargs python3 -m mypy
 
 bandit:
-	python3 -m bandit -c pyproject.toml --exclude "./.venv" -r . -q
+	python3 -m bandit -c pyproject.toml --exclude "./.venv,./venv" -r . -q
