@@ -4,27 +4,36 @@ run:
 	python3 local.py
 
 test:
-	python3 -m unittest discover tests
+	@echo "Running unit tests"
+	@python3 -m unittest discover tests
 
 fmt:
-	python3 -m black .
+	@echo "Formatting Python files with black"
+	@python3 -m black .
 
 fmt-ci:
-	python3 -m black --check .
+	@echo "Checking Python formatting with black"
+	@python3 -m black --check .
 
 lint: ruff-fix pylint mypy bandit
+	@echo "Lint suite complete"
 
 ruff:
-	python3 -m ruff check .
+	@echo "Linting Python files with ruff"
+	@python3 -m ruff check .
 
 ruff-fix:
-	python3 -m ruff check . --fix
+	@echo "Fixing lint issues with ruff"
+	@python3 -m ruff check . --fix
 
 pylint:
-	find . \( -name ".venv" -o -name "venv" \) -prune -o -name "*.py" -print | xargs python3 -m pylint --score=n --reports=n --output-format=colorized
+	@echo "Linting Python files with pylint"
+	@find . \( -name ".venv" -o -name "venv" \) -prune -o -name "*.py" -print | xargs python3 -m pylint --score=n --reports=n --output-format=colorized
 
 mypy:
-	find . \( -name ".venv" -o -name "venv" \) -prune -o -name "*.py" -print | xargs python3 -m mypy
+	@echo "Type checking Python files with mypy"
+	@find . \( -name ".venv" -o -name "venv" \) -prune -o -name "*.py" -print | xargs python3 -m mypy
 
 bandit:
-	python3 -m bandit -c pyproject.toml --exclude "./.venv,./venv" -r . -q
+	@echo "Running security checks with bandit"
+	@python3 -m bandit -c pyproject.toml --exclude "./.venv,./venv" -r . -q
