@@ -12,6 +12,22 @@ if TYPE_CHECKING:
     import cards
     import player
 
+# How long a freshly-accepted connection has to send its handshake. The lobby
+# is single-threaded and accepts one connection at a time, so without this a
+# client that opens a socket and then never speaks stalls every other player
+# indefinitely -- a slowloris with no packets in it.
+HANDSHAKE_TIMEOUT_S = 5.0
+
+
+class HandshakeError(Exception):
+    """Raised when a client's opening message is not a valid handshake.
+
+    The lobby catches this and drops the connection. Anything that opens a
+    socket without speaking the protocol -- a port scanner, a health check, a
+    browser pointed at the game port -- would otherwise propagate out of the
+    accept loop and take the whole server down with it.
+    """
+
 
 class RemoteInteraction(interaction.Interaction):
     """Interaction class for remote player using a network connection."""
@@ -21,9 +37,44 @@ class RemoteInteraction(interaction.Interaction):
         sock: socket.socket,
     ) -> None:
         self.sock: socket.socket = sock
-        name_and_index = self.sock.recv(1024).decode("utf-8").split("/", 1)
-        self.name = name_and_index[0]
-        self.index = uuid.UUID(hex=name_and_index[1])
+        self.name, self.index = self._read_handshake(sock)
+
+    @staticmethod
+    def _read_handshake(sock: socket.socket) -> tuple[str, uuid.UUID]:
+        """Read and validate a client's opening `<name>/<uuid>` message."""
+        # Bounded only for the handshake; restored to blocking afterwards, since
+        # the game itself waits on a player's turn for arbitrarily long.
+        sock.settimeout(HANDSHAKE_TIMEOUT_S)
+        try:
+            raw = sock.recv(1024)
+        except TimeoutError as exc:
+            msg = f"no handshake within {HANDSHAKE_TIMEOUT_S:g}s"
+            raise HandshakeError(msg) from exc
+        except OSError as exc:
+            msg = f"connection failed during handshake: {exc}"
+            raise HandshakeError(msg) from exc
+        finally:
+            sock.settimeout(None)
+        if not raw:
+            msg = "connection closed before sending a handshake"
+            raise HandshakeError(msg)
+        try:
+            decoded = raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            msg = "handshake was not valid UTF-8"
+            raise HandshakeError(msg) from exc
+        name, separator, index = decoded.partition("/")
+        if not separator:
+            msg = f"handshake {decoded!r} has no '/' separating name from index"
+            raise HandshakeError(msg)
+        if not name:
+            msg = "handshake carries an empty player name"
+            raise HandshakeError(msg)
+        try:
+            return name, uuid.UUID(hex=index)
+        except ValueError as exc:
+            msg = f"handshake index {index!r} is not a UUID"
+            raise HandshakeError(msg) from exc
 
     def close_connection(self) -> None:
         """Closes the connection to the remote player."""

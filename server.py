@@ -112,7 +112,16 @@ def run_lobby(args: ServerNamespace) -> list[player.Player]:
             if sock is server_socket:
                 client_socket, addr = server_socket.accept()
                 logger.info("Accepted connection from %s", addr)
-                players.append(create_remote_player(client_socket))
+                try:
+                    p = create_remote_player(client_socket)
+                except remote.HandshakeError as exc:
+                    # Something opened a socket without speaking the protocol.
+                    # Drop it and keep listening -- letting this propagate ends
+                    # the lobby, so a single port scan killed the server.
+                    logger.warning("Dropping connection from %s: %s", addr, exc)
+                    client_socket.close()
+                    continue
+                players.append(p)
                 read_sockets.append(client_socket)
     return players
 
