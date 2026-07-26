@@ -11,4 +11,9 @@ ENV TERM=xterm-256color
 ENV PLAYERS=Player
 ENV N_AIS=1
 
+# Runs unprivileged. /app stays root-owned and is only ever read, so the game has
+# no write access to its own code.
+RUN useradd --system --no-create-home --shell /usr/sbin/nologin nullopoly
+USER nullopoly
+
 CMD ["sh", "-c", "python local.py --players ${PLAYERS} --n-ais ${N_AIS}"]

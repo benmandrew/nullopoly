@@ -12,4 +12,9 @@ ENV PORT=54321
 
 EXPOSE ${PORT}
 
+# Runs unprivileged. /app stays root-owned and is only ever read, so the game has
+# no write access to its own code.
+RUN useradd --system --no-create-home --shell /usr/sbin/nologin nullopoly
+USER nullopoly
+
 CMD ["sh", "-c", "python server.py --n-players ${N_PLAYERS} --n-ais ${N_AIS} --host ${HOST} --port ${PORT}"]
