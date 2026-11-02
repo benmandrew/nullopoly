@@ -14,7 +14,7 @@ pathspec==1.0.4
 pbr==6.1.1
 platformdirs==4.3.8
 Pygments==2.20.0
-pylint==3.3.8
+pylint==4.0.9
 PyYAML==6.0.2
 rich==14.1.0
 ruff==0.12.8
